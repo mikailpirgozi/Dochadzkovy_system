@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authMiddleware } from '../middleware/auth.middleware';
-import { AlertService } from '../services/alert.service';
-import { validateRequest } from '../middleware/validation.middleware';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import { AlertService } from '../services/alert.service.js';
+import { validateRequest } from '../middleware/validation.middleware.js';
 
 const router = Router();
 
