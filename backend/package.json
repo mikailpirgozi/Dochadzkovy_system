@@ -22,7 +22,7 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist",
-    "prebuild": "npm run clean && npm run lint",
+    "prebuild": "npm run clean",
     "health": "npm run type-check && npm run lint && npm run test:run",
     "docker:build": "docker build -t attendance-pro-backend .",
     "docker:run": "docker run -p 3000:3000 attendance-pro-backend"
