@@ -420,6 +420,21 @@ export interface ExportOptions {
   columns?: string[];
 }
 
+// Export options with optional format for internal use
+export interface ExportOptionsInput {
+  userId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  format?: 'csv' | 'excel';
+  includeBreaks?: boolean;
+  includePersonal?: boolean;
+  includeBusinessTrips?: boolean;
+  includeCorrections?: boolean;
+  groupBy?: 'user' | 'date' | 'none';
+  columns?: string[];
+  status?: string; // For business trips and corrections filtering
+}
+
 // Utility types
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type Partial<T> = {

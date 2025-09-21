@@ -84,7 +84,7 @@ export class CompanySettingsController {
 
     const settings = await this.companySettingsService.updateCompanySettings(
       user.companyId,
-      validatedData
+      validatedData as Partial<CompanySettings>
     );
 
     const response: ApiResponse<CompanySettings> = {

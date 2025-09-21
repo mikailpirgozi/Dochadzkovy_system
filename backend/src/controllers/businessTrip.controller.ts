@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { BusinessTripService } from '../services/businessTrip.service.js';
-import type { AuthenticatedRequest, ApiResponse, PaginatedResponse, BusinessTripWithDetails } from '../types/index.js';
+import type { AuthenticatedRequest, ApiResponse, PaginatedResponse, BusinessTripWithDetails, CreateBusinessTripRequest, LocationData } from '../types/index.js';
 import { CustomError } from '../middleware/errorHandler.js';
 
 // Validation schemas
@@ -72,10 +72,15 @@ export class BusinessTripController {
       throw new CustomError('End date must be after start date', 400);
     }
 
+    // Ensure all required fields are present
+    if (!validatedData.destination || !validatedData.purpose || !validatedData.estimatedStart || !validatedData.estimatedEnd) {
+      throw new CustomError('Missing required fields', 400);
+    }
+
     const trip = await this.businessTripService.createBusinessTrip(
       user.id,
       user.companyId,
-      validatedData
+      validatedData as CreateBusinessTripRequest
     );
 
     const response: ApiResponse<BusinessTripWithDetails> = {
@@ -227,11 +232,18 @@ export class BusinessTripController {
 
     const validatedData = startBusinessTripSchema.parse(req.body);
 
+    // Ensure location data is complete
+    if (!validatedData.location || 
+        validatedData.location.latitude === undefined || 
+        validatedData.location.longitude === undefined) {
+      throw new CustomError('Complete location data is required', 400);
+    }
+
     const trip = await this.businessTripService.startBusinessTrip(
       id,
       user.id,
       user.companyId,
-      validatedData.location
+      validatedData.location as LocationData
     );
 
     const response: ApiResponse<BusinessTripWithDetails> = {
@@ -257,11 +269,18 @@ export class BusinessTripController {
 
     const validatedData = endBusinessTripSchema.parse(req.body);
 
+    // Ensure location data is complete
+    if (!validatedData.location || 
+        validatedData.location.latitude === undefined || 
+        validatedData.location.longitude === undefined) {
+      throw new CustomError('Complete location data is required', 400);
+    }
+
     const trip = await this.businessTripService.endBusinessTrip(
       id,
       user.id,
       user.companyId,
-      validatedData.location,
+      validatedData.location as LocationData,
       validatedData.notes
     );
 

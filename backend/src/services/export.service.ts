@@ -3,7 +3,9 @@ import { prisma } from '../utils/database.js';
 import type { 
   AttendanceEventWithUser, 
   FilterOptions,
-  CorrectionStatus
+  CorrectionStatus,
+  ExportOptions,
+  ExportOptionsInput
 } from '../types/index.js';
 import type { BusinessTripStatus, EventType } from '@prisma/client';
 
@@ -58,16 +60,6 @@ interface CorrectionWithUser {
 };
 import { CustomError } from '../middleware/errorHandler.js';
 
-export interface ExportOptions extends FilterOptions {
-  format: 'csv' | 'excel';
-  includeBreaks?: boolean;
-  includePersonal?: boolean;
-  includeBusinessTrips?: boolean;
-  includeCorrections?: boolean;
-  groupBy?: 'user' | 'date' | 'none';
-  columns?: string[];
-}
-
 export interface ExportData {
   filename: string;
   mimeType: string;
@@ -80,7 +72,7 @@ export class ExportService {
    */
   async exportAttendanceData(
     companyId: string,
-    options: ExportOptions
+    options: ExportOptionsInput
   ): Promise<ExportData> {
     // Get attendance data based on filters
     const attendanceData = await this.getAttendanceDataForExport(companyId, options);
@@ -89,10 +81,11 @@ export class ExportService {
     const transformedData = this.transformDataForExport(attendanceData, options);
 
     // Generate export file
-    if (options.format === 'excel') {
-      return this.generateExcelExport(transformedData, options);
+    const format = options.format || 'csv';
+    if (format === 'excel') {
+      return this.generateExcelExport(transformedData, { ...options, format });
     } else {
-      return this.generateCSVExport(transformedData, options);
+      return this.generateCSVExport(transformedData, { ...options, format });
     }
   }
 
@@ -101,7 +94,7 @@ export class ExportService {
    */
   async exportBusinessTripsData(
     companyId: string,
-    options: Omit<ExportOptions, 'includeBreaks' | 'includePersonal'>
+    options: Omit<ExportOptionsInput, 'includeBreaks' | 'includePersonal'>
   ): Promise<ExportData> {
     const where: {
       companyId: string;
@@ -175,14 +168,17 @@ export class ExportService {
     }));
 
     // Generate export file
-    if (options.format === 'excel') {
+    const format = options.format || 'csv';
+    if (format === 'excel') {
       return this.generateExcelExport(transformedData, { 
         ...options, 
+        format,
         filename: 'business-trips' 
       });
     } else {
       return this.generateCSVExport(transformedData, { 
         ...options, 
+        format,
         filename: 'business-trips' 
       });
     }
@@ -193,7 +189,7 @@ export class ExportService {
    */
   async exportCorrectionsData(
     companyId: string,
-    options: Omit<ExportOptions, 'includeBreaks' | 'includePersonal' | 'includeBusinessTrips'>
+    options: Omit<ExportOptionsInput, 'includeBreaks' | 'includePersonal' | 'includeBusinessTrips'>
   ): Promise<ExportData> {
     const where: {
       user: {
@@ -278,14 +274,17 @@ export class ExportService {
     }));
 
     // Generate export file
-    if (options.format === 'excel') {
+    const format = options.format || 'csv';
+    if (format === 'excel') {
       return this.generateExcelExport(transformedData, { 
         ...options, 
+        format,
         filename: 'corrections' 
       });
     } else {
       return this.generateCSVExport(transformedData, { 
         ...options, 
+        format,
         filename: 'corrections' 
       });
     }
@@ -296,7 +295,7 @@ export class ExportService {
    */
   private async getAttendanceDataForExport(
     companyId: string,
-    options: ExportOptions
+    options: ExportOptionsInput
   ): Promise<AttendanceEventWithUser[]> {
     const where: {
       companyId: string;
@@ -373,7 +372,7 @@ export class ExportService {
    */
   private transformDataForExport(
     data: AttendanceEventWithUser[],
-    options: ExportOptions
+    options: ExportOptionsInput
   ): Array<Record<string, string>> {
     let transformedData: Array<Record<string, string>> = data.map(event => ({
       'ID': event.id,
@@ -491,7 +490,7 @@ export class ExportService {
    */
   private generateExcelExport(
     data: Array<Record<string, string>>,
-    options: Partial<ExportOptions> & { filename?: string }
+    options: Partial<ExportOptionsInput> & { filename?: string; format?: string }
   ): ExportData {
     const workbook = XLSX.utils.book_new();
     
@@ -529,7 +528,7 @@ export class ExportService {
    */
   private generateCSVExport(
     data: Array<Record<string, string>>,
-    options: Partial<ExportOptions> & { filename?: string }
+    options: Partial<ExportOptionsInput> & { filename?: string; format?: string }
   ): ExportData {
     if (data.length === 0) {
       throw new CustomError('No data to export', 400);

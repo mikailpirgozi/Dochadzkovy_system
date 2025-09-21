@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { CorrectionService } from '../services/correction.service.js';
-import type { AuthenticatedRequest, ApiResponse, PaginatedResponse, CorrectionWithDetails } from '../types/index.js';
+import type { AuthenticatedRequest, ApiResponse, PaginatedResponse, CorrectionWithDetails, CreateCorrectionRequest } from '../types/index.js';
 import { CustomError } from '../middleware/errorHandler.js';
 
 // Validation schemas
@@ -53,10 +53,15 @@ export class CorrectionController {
     const user = req.user;
     const validatedData = createCorrectionSchema.parse(req.body);
 
+    // Ensure all required fields are present
+    if (!validatedData.originalEventId || !validatedData.requestedChange || !validatedData.reason) {
+      throw new CustomError('Missing required fields', 400);
+    }
+
     const correction = await this.correctionService.createCorrection(
       user.id,
       user.companyId,
-      validatedData
+      validatedData as CreateCorrectionRequest
     );
 
     const response: ApiResponse<CorrectionWithDetails> = {

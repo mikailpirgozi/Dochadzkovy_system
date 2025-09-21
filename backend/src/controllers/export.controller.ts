@@ -75,6 +75,11 @@ export class ExportController {
       validatedQuery.endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     }
 
+    // Set default format if not specified
+    if (!validatedQuery.format) {
+      validatedQuery.format = 'csv';
+    }
+
     const exportData = await this.exportService.exportAttendanceData(
       user.companyId,
       validatedQuery
@@ -116,6 +121,11 @@ export class ExportController {
       validatedQuery.endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
     }
 
+    // Set default format if not specified
+    if (!validatedQuery.format) {
+      validatedQuery.format = 'csv';
+    }
+
     const exportData = await this.exportService.exportBusinessTripsData(
       user.companyId,
       validatedQuery
@@ -155,6 +165,11 @@ export class ExportController {
       const now = new Date();
       validatedQuery.startDate = new Date(now.getFullYear(), 0, 1);
       validatedQuery.endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    }
+
+    // Set default format if not specified
+    if (!validatedQuery.format) {
+      validatedQuery.format = 'csv';
     }
 
     const exportData = await this.exportService.exportCorrectionsData(
@@ -253,7 +268,7 @@ export class ExportController {
       // Get small sample of data for preview
       const exportData = await this.exportService.exportAttendanceData(
         user.companyId,
-        validatedQuery as ExportOptions
+        validatedQuery
       );
 
       // Convert buffer to string and parse first few rows
