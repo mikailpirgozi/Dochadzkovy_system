@@ -1,0 +1,300 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id          String   @id @default(nanoid())
+  name        String
+  slug        String   @unique
+  qrCode      String   @unique @default(nanoid(12))
+  settings    Json     @default("{}")
+  geofence    Json     // {lat, lng, radius}
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  users            User[]
+  locations        Location[]
+  attendanceEvents AttendanceEvent[]
+  alerts           Alert[]
+  corrections      Correction[]
+  businessTrips    BusinessTrip[]
+  auditLogs        AuditLog[]
+  
+  @@map("companies")
+}
+
+model User {
+  id          String   @id @default(nanoid())
+  email       String   @unique
+  password    String
+  firstName   String
+  lastName    String
+  role        UserRole @default(EMPLOYEE)
+  settings           Json     @default("{}")
+  pushToken          String?
+  pushTokenPlatform  String?
+  pushTokenUpdatedAt DateTime?
+  notificationSettings Json   @default("{\"push\": {\"geofence\": true, \"break\": true, \"shift\": true, \"corrections\": true, \"businessTrips\": true}, \"email\": {\"geofence\": true, \"break\": false, \"shift\": false, \"corrections\": true, \"businessTrips\": true}}")
+  deviceId           String?
+  isActive           Boolean  @default(true)
+  companyId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  attendanceEvents  AttendanceEvent[]
+  locationLogs      LocationLog[]
+  alerts            Alert[]
+  corrections       Correction[]
+  reviewedCorrections Correction[]   @relation("CorrectionReviewer")
+  businessTrips     BusinessTrip[]
+  approvedTrips     BusinessTrip[]   @relation("TripApprover")
+  auditLogs         AuditLog[]
+  
+  @@map("users")
+}
+
+model Location {
+  id          String   @id @default(nanoid())
+  name        String
+  address     String
+  latitude    Float
+  longitude   Float
+  radius      Int      @default(100) // meters
+  isActive    Boolean  @default(true)
+  companyId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@map("locations")
+}
+
+model AttendanceEvent {
+  id                   String    @id @default(cuid())
+  userId               String
+  companyId            String
+  type                 EventType
+  timestamp            DateTime
+  location             Json      // {lat, lng, accuracy}
+  qrVerified           Boolean   @default(false)
+  notes                String?
+  correctionApplied    Boolean   @default(false)
+  correctionId         String?
+  correctionAppliedAt  DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  corrections Correction[] @relation("CorrectionOriginalEvent")
+  
+  @@map("attendance_events")
+}
+
+model LocationLog {
+  id          String   @id @default(nanoid())
+  userId      String
+  latitude    Float
+  longitude   Float
+  accuracy    Float
+  timestamp   DateTime @default(now())
+  isActive    Boolean  @default(true) // for tracking session
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("location_logs")
+}
+
+model Alert {
+  id          String     @id @default(cuid())
+  userId      String
+  companyId   String
+  type        AlertType
+  title       String
+  message     String
+  data        Json       @default("{}")
+  severity    String     @default("medium")
+  resolved    Boolean    @default(false)
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@map("alerts")
+}
+
+model Correction {
+  id              String           @id @default(cuid())
+  userId          String
+  companyId       String
+  originalEventId String
+  requestedChange Json
+  reason          String
+  status          CorrectionStatus @default(PENDING)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNotes     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // Relations
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company          Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  originalEvent    AttendanceEvent? @relation("CorrectionOriginalEvent", fields: [originalEventId], references: [id])
+  reviewedByUser   User?            @relation("CorrectionReviewer", fields: [reviewedBy], references: [id])
+  
+  @@map("corrections")
+}
+
+model BusinessTrip {
+  id             String              @id @default(cuid())
+  userId         String
+  companyId      String
+  destination    String
+  purpose        String
+  estimatedStart DateTime
+  estimatedEnd   DateTime
+  actualStart    DateTime?
+  actualEnd      DateTime?
+  status         BusinessTripStatus  @default(PENDING)
+  approvedBy     String?
+  approvedAt     DateTime?
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  
+  // Relations
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  approver User?   @relation("TripApprover", fields: [approvedBy], references: [id])
+  
+  @@map("business_trips")
+}
+
+model AuditLog {
+  id          String   @id @default(nanoid())
+  companyId   String
+  userId      String?
+  action      AuditAction
+  entityType  String   // 'USER', 'ATTENDANCE', 'COMPANY', 'CORRECTION', etc.
+  entityId    String?
+  oldValues   Json?
+  newValues   Json?
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@map("audit_logs")
+  @@index([companyId, timestamp])
+  @@index([entityType, entityId])
+  @@index([userId])
+}
+
+// Enums
+enum UserRole {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  MANAGER
+  EMPLOYEE
+  ADMIN
+}
+
+enum EventType {
+  CLOCK_IN
+  CLOCK_OUT
+  BREAK_START
+  BREAK_END
+  PERSONAL_START
+  PERSONAL_END
+  BUSINESS_TRIP_START
+  BUSINESS_TRIP_END
+}
+
+enum AlertType {
+  alert
+  geofence_violation
+  break_reminder
+  shift_end
+  correction_approved
+  business_trip_approved
+  general
+  LEFT_GEOFENCE
+  LONG_BREAK
+  MISSING_CLOCK_OUT
+  GPS_DISABLED
+  BUSINESS_TRIP_REQUEST
+  CORRECTION_REQUEST
+  SYSTEM_ERROR
+  OVERTIME_WARNING
+  EXCESSIVE_OVERTIME
+  CRITICAL_OVERTIME
+  overtime_alert
+  employee_overtime
+  OVERTIME_CRITICAL
+  OVERTIME_LEGAL_LIMIT
+  overtime_warning
+  excessive_overtime
+  critical_overtime
+  critical_overtime_admin
+  excessive_overtime_admin
+  weekly_overtime_summary
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BusinessTripStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  CLOCK_IN
+  CLOCK_OUT
+  BREAK_START
+  BREAK_END
+  PERSONAL_START
+  PERSONAL_END
+  BUSINESS_TRIP_START
+  BUSINESS_TRIP_END
+  CORRECTION_REQUEST
+  CORRECTION_APPROVE
+  CORRECTION_REJECT
+}

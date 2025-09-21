@@ -1,0 +1,352 @@
+# 🚨 DOCHÁDZKA PRO - CURSOR AI RULES
+
+## 🎯 PROJECT OVERVIEW
+- **Multi-tenant attendance tracking app** with React Native + Expo (mobile) and Railway backend
+- **GPS tracking, QR scanning, geofencing, push notifications**
+- **Target: iOS/Android App Store approval**
+- **Zero tolerance for errors/warnings policy**
+
+## 🔥 CRITICAL RULES - ZERO ERRORS POLICY
+
+### ⚡ MANDATORY ERROR FIXING
+- **NEVER leave ANY errors or warnings in code**
+- **ALWAYS fix ALL TypeScript, ESLint, and build errors immediately**
+- **NEVER use shortcuts or simplifications to avoid fixing errors**
+- **ALWAYS preserve original file structure and fix systematically**
+- **Run linting and type checking after EVERY code change**
+
+### 🚫 ABSOLUTE PROHIBITIONS
+- ❌ `any` types - use proper TypeScript types
+- ❌ `@ts-ignore` - use `@ts-expect-error` with explanation if absolutely necessary
+- ❌ Unused imports/variables - remove immediately
+- ❌ Missing React hook dependencies - fix exhaustive-deps warnings
+- ❌ Committing code with warnings/errors
+- ❌ Incomplete implementations - finish what you start
+
+## 📱 MOBILE APP RULES (React Native + Expo)
+
+### 🎯 Architecture Patterns
+```typescript
+// ✅ CORRECT - Proper component structure
+interface ComponentProps {
+  userId: string;
+  onSuccess: (data: AttendanceEvent) => void;
+  onError: (error: string) => void;
+}
+
+const AttendanceComponent: React.FC<ComponentProps> = ({ userId, onSuccess, onError }) => {
+  // Implementation
+};
+
+// ✅ CORRECT - Custom hooks for business logic
+const useAttendance = (userId: string) => {
+  const [events, setEvents] = useState<AttendanceEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Implementation with proper error handling
+  return { events, loading, error, clockIn, clockOut };
+};
+```
+
+### 📍 Location & GPS Rules
+```typescript
+// ✅ CORRECT - Always handle location permissions
+const requestLocationPermission = async (): Promise<boolean> => {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      throw new Error('Location permission denied');
+    }
+    return true;
+  } catch (error) {
+    console.error('Location permission error:', error);
+    return false;
+  }
+};
+
+// ✅ CORRECT - Always validate GPS accuracy
+const validateLocationAccuracy = (location: LocationObject): boolean => {
+  const MIN_ACCURACY = 50; // meters
+  return location.coords.accuracy !== null && location.coords.accuracy <= MIN_ACCURACY;
+};
+```
+
+### 🔔 Push Notifications Rules
+```typescript
+// ✅ CORRECT - Always handle notification permissions
+const registerForPushNotifications = async (): Promise<string | null> => {
+  try {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      return null;
+    }
+    
+    const token = await Notifications.getExpoPushTokenAsync();
+    return token.data;
+  } catch (error) {
+    console.error('Push notification registration failed:', error);
+    return null;
+  }
+};
+```
+
+## 🖥️ BACKEND RULES (Node.js + Express + Railway)
+
+### 🗄️ Database & Prisma Rules
+```typescript
+// ✅ CORRECT - Always use transactions for related operations
+const clockInUser = async (userId: string, locationData: LocationData) => {
+  return await prisma.$transaction(async (tx) => {
+    // Check if already clocked in
+    const lastEvent = await tx.attendanceEvent.findFirst({
+      where: { userId },
+      orderBy: { timestamp: 'desc' }
+    });
+    
+    if (lastEvent?.type === 'CLOCK_IN') {
+      throw new Error('User already clocked in');
+    }
+    
+    // Create clock in event
+    const event = await tx.attendanceEvent.create({
+      data: {
+        userId,
+        type: 'CLOCK_IN',
+        timestamp: new Date(),
+        location: locationData,
+        qrVerified: true
+      }
+    });
+    
+    return event;
+  });
+};
+
+// ✅ CORRECT - Always validate input with Zod
+const ClockInSchema = z.object({
+  qrCode: z.string().min(1),
+  location: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    accuracy: z.number().positive()
+  })
+});
+```
+
+### 🔐 Security Rules
+```typescript
+// ✅ CORRECT - Always validate JWT and company context
+const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      include: { company: true }
+    });
+    
+    if (!user || !user.isActive) {
+      return res.status(401).json({ error: 'Invalid user' });
+    }
+    
+    req.user = user;
+    req.company = user.company;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
+```
+
+## 🎨 UI/UX RULES
+
+### 📱 React Native Styling
+```typescript
+// ✅ CORRECT - Use NativeWind classes consistently
+const AttendanceButton: React.FC<ButtonProps> = ({ onPress, children, variant = 'primary' }) => {
+  const baseClasses = "px-6 py-4 rounded-lg font-semibold text-center";
+  const variantClasses = {
+    primary: "bg-blue-500 text-white",
+    secondary: "bg-gray-200 text-gray-800",
+    danger: "bg-red-500 text-white"
+  };
+  
+  return (
+    <TouchableOpacity 
+      className={`${baseClasses} ${variantClasses[variant]}`}
+      onPress={onPress}
+    >
+      <Text className="text-lg font-semibold">{children}</Text>
+    </TouchableOpacity>
+  );
+};
+```
+
+### 🌍 Multi-tenant UI Rules
+```typescript
+// ✅ CORRECT - Always show company context
+const Header: React.FC = () => {
+  const { user, company } = useAuth();
+  
+  return (
+    <View className="bg-blue-500 p-4 flex-row justify-between items-center">
+      <Text className="text-white text-lg font-bold">{company.name}</Text>
+      <Text className="text-white">{user.firstName} {user.lastName}</Text>
+    </View>
+  );
+};
+```
+
+## 🧪 TESTING RULES
+
+### 📱 Mobile Testing
+```typescript
+// ✅ CORRECT - Always test location-dependent features
+describe('AttendanceService', () => {
+  it('should reject clock in outside geofence', async () => {
+    const outsideLocation = {
+      latitude: 48.0000, // Far from company location
+      longitude: 17.0000,
+      accuracy: 10
+    };
+    
+    await expect(
+      attendanceService.clockIn('user-id', 'qr-code', outsideLocation)
+    ).rejects.toThrow('Outside work area');
+  });
+});
+```
+
+## 🚀 DEPLOYMENT RULES
+
+### 🚂 Railway Backend
+```typescript
+// ✅ CORRECT - Always handle environment variables properly
+const config = {
+  port: parseInt(process.env.PORT || '3000'),
+  databaseUrl: process.env.DATABASE_URL!,
+  jwtSecret: process.env.JWT_SECRET!,
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:8081'
+};
+
+// Validate required env vars
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
+}
+```
+
+### 📱 Expo Build
+```typescript
+// ✅ CORRECT - Always configure app.config.js properly
+export default {
+  expo: {
+    name: "Dochádzka Pro",
+    slug: "attendance-pro",
+    version: "1.0.0",
+    ios: {
+      bundleIdentifier: "com.yourcompany.attendancepro",
+      infoPlist: {
+        NSLocationWhenInUseUsageDescription: "Táto aplikácia potrebuje prístup k polohe pre overenie vašej pozície pri pipnutí do práce.",
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Táto aplikácia potrebuje prístup k polohe na pozadí pre sledovanie pracovného času a upozornenia pri opustení pracoviska."
+      }
+    },
+    plugins: [
+      "expo-location",
+      "expo-task-manager", 
+      "expo-notifications"
+    ]
+  }
+};
+```
+
+## 🔧 DEVELOPMENT WORKFLOW
+
+### 📋 Pre-Commit Checklist
+1. **Run ESLint fix**: `npx eslint . --ext .ts,.tsx --fix`
+2. **Check TypeScript**: `npx tsc --noEmit`
+3. **Run tests**: `npm test`
+4. **Build check**: `npm run build`
+5. **Only commit if ALL checks pass**
+
+### 🚨 Error Handling Patterns
+```typescript
+// ✅ CORRECT - Always use proper error boundaries
+class AttendanceErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error: error.message };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Attendance error:', error, errorInfo);
+    // Log to crash reporting service
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorScreen error={this.state.error} onRetry={this.handleRetry} />;
+    }
+
+    return this.props.children;
+  }
+}
+```
+
+## 📱 APP STORE COMPLIANCE
+
+### 🔒 Privacy Rules
+```typescript
+// ✅ CORRECT - Always request permissions with clear explanations
+const requestPermissions = async () => {
+  // Step 1: Explain why we need location
+  Alert.alert(
+    "Povolenie polohy",
+    "Táto aplikácia potrebuje prístup k vašej polohe pre:\n\n• Overenie že ste na pracovisku\n• Upozornenie pri opustení práce\n• Presné sledovanie času\n\nPoloha sa sleduje LEN počas práce.",
+    [
+      { text: "Zrušiť", style: "cancel" },
+      { text: "Povoliť", onPress: requestLocationPermission }
+    ]
+  );
+};
+```
+
+## 🎯 CODE QUALITY STANDARDS
+
+### ✅ MANDATORY PRACTICES
+- **Always use TypeScript strict mode**
+- **Always handle async operations with try/catch**
+- **Always validate user inputs**
+- **Always provide loading states**
+- **Always handle offline scenarios**
+- **Always log errors for debugging**
+- **Always use proper naming conventions**
+- **Always write self-documenting code**
+
+### 🔄 CONTINUOUS IMPROVEMENT
+- **Refactor code when adding new features**
+- **Update dependencies regularly**
+- **Monitor performance metrics**
+- **Collect user feedback**
+- **Iterate based on real usage data**
+
+---
+
+## 🚨 REMEMBER: ZERO TOLERANCE FOR ERRORS!
+
+**Every single warning or error MUST be fixed immediately. No exceptions!**
+
+**Quality over speed. Perfect code over quick hacks.**
+
+**When in doubt, ask for clarification rather than guessing.**
