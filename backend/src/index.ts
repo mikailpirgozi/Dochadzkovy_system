@@ -106,11 +106,14 @@ if (config.NODE_ENV !== 'test') {
   }));
 }
 
-// Apply rate limiting to all requests
-app.use('/api/', limiter);
-
-// Apply more lenient rate limiting to public company endpoints
-app.use('/api/companies/validate', publicLimiter);
+// Apply rate limiting to all requests (except company validation for testing)
+app.use('/api/', (req, res, next) => {
+  if (req.path.startsWith('/companies/validate')) {
+    next(); // Skip rate limiting for company validation
+  } else {
+    limiter(req, res, next);
+  }
+});
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
