@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Users, Plus, Search, Filter } from 'lucide-react';
 import { getStatusColor, getStatusText } from '../lib/utils';
 import { dashboardApi } from '../lib/api';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface Employee {
   id: string;
@@ -37,22 +38,28 @@ export function EmployeesPage() {
     role: 'EMPLOYEE'
   });
 
+  // Debounced fetch function to prevent excessive API calls
+  const debouncedFetchEmployees = useDebounce(fetchEmployees, 500);
+
   useEffect(() => {
     fetchEmployees();
     
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchEmployees, 30000);
+    // Auto-refresh every 2 minutes (reduced from 30 seconds)
+    const interval = setInterval(debouncedFetchEmployees, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [debouncedFetchEmployees]);
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
+    console.log('🔄 Fetching employees...');
     try {
       const response = await dashboardApi.getEmployees();
+      console.log('✅ API Response:', response);
+      console.log('📊 Response structure:', JSON.stringify(response, null, 2));
       
-      if (response.data.success && response.data.data) {
+      if (response.success && response.data) {
         // Map backend response to frontend interface
-        const mappedEmployees = response.data.data.users.map((user: Record<string, unknown>) => ({
+        const mappedEmployees = response.data.users.map((user: Record<string, unknown>) => ({
           id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -63,14 +70,19 @@ export function EmployeesPage() {
           lastSeen: user.lastEventTime || user.updatedAt,
           workingHours: 0 // Will be calculated from attendance events
         }));
+        console.log('👥 Mapped employees:', mappedEmployees);
         setEmployees(mappedEmployees);
+      } else {
+        console.warn('⚠️ Invalid response format:', response);
       }
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      console.error('❌ Error fetching employees:', error);
+      // Show error to user
+      alert('Chyba pri načítavaní zamestnancov: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleAddEmployee = async () => {
     try {

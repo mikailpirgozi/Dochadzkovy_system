@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
 import { apiService } from '../../src/services/api';
 import { BiometricService } from '../../src/services/biometric.service';
+import axios from 'axios';
 
 export default function LoginScreen() {
   const [companySlug, setCompanySlug] = useState('');
@@ -66,11 +67,25 @@ export default function LoginScreen() {
     setIsValidatingCompany(true);
     
     try {
-      const response = await global.fetch(`${apiService.client.defaults.baseURL}/companies/validate/${companySlug.trim()}`);
-      const data = await response.json();
+      console.log('🔍 Validating company with URL:', apiService.client.defaults.baseURL);
+      console.log('🏢 Company slug:', companySlug.trim());
       
-      if (data.success && data.data?.exists) {
-        setCompanyInfo(data.data.company);
+      // Create a new axios instance without interceptors for validation
+      const validationClient = axios.create({
+        baseURL: apiService.client.defaults.baseURL,
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const response = await validationClient.get(`/companies/validate/${companySlug.trim()}`);
+      const data = response.data;
+      
+      console.log('✅ Company validation response:', data);
+      
+      if (data.success && data.data) {
+        setCompanyInfo(data.data);
         setStep('credentials');
         apiService.setCompanySlug(companySlug.trim());
       } else {

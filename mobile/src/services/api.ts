@@ -17,7 +17,7 @@ import type {
 } from '../types/index.js';
 
 // Get API URL from app config
-const API_URL = Constants.expoConfig?.extra?.API_URL ?? 'http://localhost:3000/api';
+const API_URL = Constants.expoConfig?.extra?.API_URL ?? 'https://backend-api-production-03aa.up.railway.app/api';
 
 // Storage keys
 const STORAGE_KEYS = {

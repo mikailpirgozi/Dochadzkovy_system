@@ -10,7 +10,7 @@ export default {
     '!src/**/*.test.{ts,tsx}',
     '!src/**/__tests__/**',
   ],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   globals: {
     'ts-jest': {

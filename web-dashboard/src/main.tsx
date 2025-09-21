@@ -37,4 +37,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-console.log("API_URL:", import.meta.env.VITE_API_URL);
+// Log the actual API URL being used
+const API_URL = import.meta.env.VITE_API_URL || 'https://backend-api-production-03aa.up.railway.app/api';
+console.log("API_URL:", API_URL);

@@ -28,13 +28,19 @@ export default {
         NSFaceIDUsageDescription: "Táto aplikácia používa Face ID pre bezpečné a rýchle prihlásenie bez nutnosti zadávať heslo. Face ID sa používa len na overenie vašej identity.",
         UIBackgroundModes: ["location", "background-processing"],
         NSAppTransportSecurity: {
-          NSAllowsArbitraryLoads: false,
+          NSAllowsArbitraryLoads: true,
           NSExceptionDomains: {
             "localhost": {
               NSExceptionAllowsInsecureHTTPLoads: true
             },
             "192.168.1.22": {
               NSExceptionAllowsInsecureHTTPLoads: true
+            },
+            "backend-api-production-03aa.up.railway.app": {
+              NSExceptionRequiresForwardSecrecy: false,
+              NSExceptionMinimumTLSVersion: "TLSv1.2",
+              NSThirdPartyExceptionAllowsInsecureHTTPLoads: false,
+              NSThirdPartyExceptionMinimumTLSVersion: "TLSv1.2"
             }
           }
         },
@@ -93,7 +99,7 @@ export default {
       eas: {
         projectId: "d0564238-9aa3-4e70-b4ce-5656ec4a811e"
       },
-      API_URL: process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.22:3000/api",
+      API_URL: process.env.EXPO_PUBLIC_API_URL || "https://backend-api-production-03aa.up.railway.app/api",
       ENVIRONMENT: process.env.NODE_ENV || "development"
     }
   }

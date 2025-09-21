@@ -38,6 +38,9 @@ const config = validateEnvironment();
 const app = express();
 const server = createServer(app);
 
+// Trust proxy for Railway deployment (fixes rate limiting issues)
+app.set('trust proxy', 1);
+
 // Initialize WebSocket service
 WebSocketService.initialize(server);
 
@@ -48,6 +51,17 @@ SchedulerService.initialize();
 const limiter = rateLimit({
   windowMs: config.RATE_LIMIT_WINDOW_MS,
   max: config.RATE_LIMIT_MAX_REQUESTS,
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// More lenient rate limiter for public endpoints
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 50, // 50 requests per minute
   message: {
     error: 'Too many requests from this IP, please try again later.',
   },
@@ -94,6 +108,9 @@ if (config.NODE_ENV !== 'test') {
 
 // Apply rate limiting to all requests
 app.use('/api/', limiter);
+
+// Apply more lenient rate limiting to public company endpoints
+app.use('/api/companies/validate', publicLimiter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
@@ -176,11 +193,11 @@ const startServer = async () => {
     await prisma.$connect();
     logger.info('Database connected successfully');
 
-    server.listen(config.PORT, () => {
+    server.listen(config.PORT, '0.0.0.0', () => {
       logger.info(`🚀 Server running on port ${config.PORT}`);
       logger.info(`📱 Environment: ${config.NODE_ENV}`);
       logger.info(`🌐 CORS origins: ${config.CORS_ORIGIN}`);
-      logger.info(`📊 Health check: http://localhost:${config.PORT}/health`);
+      logger.info(`📊 Health check: http://0.0.0.0:${config.PORT}/health`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

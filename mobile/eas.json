@@ -34,7 +34,7 @@
         "autoIncrement": "versionCode"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://your-production-api.railway.app/api",
+        "EXPO_PUBLIC_API_URL": "https://backend-api-production-03aa.up.railway.app/api",
         "EXPO_PUBLIC_ENVIRONMENT": "production"
       }
     }

@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios';
+import { withCache, apiCache } from './cache';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://backend-api-production-03aa.up.railway.app/api';
 
 // Rate limiting and retry configuration
 const RETRY_CONFIG = {
@@ -152,9 +153,11 @@ export default api;
 // API service functions with enhanced error handling and queuing
 export const dashboardApi = {
   // Dashboard stats
-  getStats: () => makeRequest(() => api.get('/dashboard/stats', { 
-    params: { _t: Date.now() } // Cache busting
-  })),
+  getStats: () => withCache(
+    'dashboard-stats',
+    () => makeRequest(() => api.get('/dashboard/stats')),
+    2 * 60 * 1000 // 2 minutes cache
+  ),
   
   // Live employee locations
   getLiveLocations: (companyId: string) => 
@@ -177,7 +180,11 @@ export const dashboardApi = {
     makeRequest(() => api.get('/export/excel', { params, responseType: 'blob' })),
   
   // Employee management
-  getEmployees: () => makeRequest(() => api.get('/users')),
+  getEmployees: () => withCache(
+    'employees',
+    () => makeRequest(() => api.get('/users')),
+    5 * 60 * 1000 // 5 minutes cache
+  ),
   createEmployee: (data: Record<string, unknown>) => makeRequest(() => api.post('/users', data)),
   updateEmployee: (id: string, data: Record<string, unknown>) => makeRequest(() => api.put(`/users/${id}`, data)),
   deleteEmployee: (id: string) => makeRequest(() => api.delete(`/users/${id}`)),
@@ -195,7 +202,12 @@ export const dashboardApi = {
   getEmployeeStatistics: (period: 'day' | 'week' | 'month', date?: string) => {
     const params: Record<string, string> = { period };
     if (date) params.date = date;
-    return makeRequest(() => api.get('/dashboard/statistics', { params }));
+    const cacheKey = apiCache.generateKey('/dashboard/statistics', params);
+    return withCache(
+      cacheKey,
+      () => makeRequest(() => api.get('/dashboard/statistics', { params })),
+      3 * 60 * 1000 // 3 minutes cache
+    );
   },
   
   getDayActivities: (date: string, userId?: string) => {
@@ -214,20 +226,35 @@ export const dashboardApi = {
   getWeeklyChartData: (startDate?: string) => {
     const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
-    return makeRequest(() => api.get('/dashboard/charts/weekly', { params }));
+    const cacheKey = apiCache.generateKey('/dashboard/charts/weekly', params);
+    return withCache(
+      cacheKey,
+      () => makeRequest(() => api.get('/dashboard/charts/weekly', { params })),
+      5 * 60 * 1000 // 5 minutes cache
+    );
   },
 
   getMonthlyChartData: (year?: number, month?: number) => {
     const params: Record<string, string | number> = {};
     if (year) params.year = year;
     if (month) params.month = month;
-    return makeRequest(() => api.get('/dashboard/charts/monthly', { params }));
+    const cacheKey = apiCache.generateKey('/dashboard/charts/monthly', params);
+    return withCache(
+      cacheKey,
+      () => makeRequest(() => api.get('/dashboard/charts/monthly', { params })),
+      10 * 60 * 1000 // 10 minutes cache
+    );
   },
 
   getComparisonChartData: (period: 'week' | 'month', userIds?: string[], startDate?: string) => {
     const params: Record<string, string> = { period };
     if (userIds && userIds.length > 0) params.userIds = userIds.join(',');
     if (startDate) params.startDate = startDate;
-    return makeRequest(() => api.get('/dashboard/charts/comparison', { params }));
+    const cacheKey = apiCache.generateKey('/dashboard/charts/comparison', params);
+    return withCache(
+      cacheKey,
+      () => makeRequest(() => api.get('/dashboard/charts/comparison', { params })),
+      5 * 60 * 1000 // 5 minutes cache
+    );
   },
 };

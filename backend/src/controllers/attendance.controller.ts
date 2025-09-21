@@ -1,8 +1,8 @@
 import type { Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '../utils/database';
-import { isWithinGeofence, calculateDistance } from '../utils/helpers';
-import { logger } from '../utils/logger';
+import { prisma } from '../utils/database.js';
+import { isWithinGeofence, calculateDistance } from '../utils/helpers.js';
+import { logger } from '../utils/logger.js';
 import { WebSocketService } from '../services/websocket.service.js';
 import type { AuthenticatedRequest, GeofenceData } from '../types/index.js';
 

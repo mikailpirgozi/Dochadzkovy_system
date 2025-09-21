@@ -1,0 +1,48 @@
+
+> attendance-pro-backend@1.0.0 dev
+> tsx watch src/index.ts
+
+Email service not configured - missing SMTP environment variables
+Initializing scheduled jobs...
+Scheduled job 'overtime-check' with cron expression: */30 8-20 * * 1-5
+Scheduled job 'audit-cleanup' with cron expression: 0 2 * * *
+Scheduled job 'health-check' with cron expression: 0 * * * *
+Scheduled job 'weekly-summary' with cron expression: 0 9 * * 1
+Initialized 4 scheduled jobs
+{"level":"info","time":"2025-09-21T23:37:07.262Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"Database info: Starting a postgresql pool with 29 connections."}
+{"level":"info","time":"2025-09-21T23:37:07.698Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"Database connected successfully"}
+{"level":"info","time":"2025-09-21T23:37:07.705Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"🚀 Server running on port 3000"}
+{"level":"info","time":"2025-09-21T23:37:07.705Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"📱 Environment: production"}
+{"level":"info","time":"2025-09-21T23:37:07.705Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"🌐 CORS origins: http://localhost:5173,https://postgres-production-1066.up.railway.app"}
+{"level":"info","time":"2025-09-21T23:37:07.705Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"📊 Health check: http://0.0.0.0:3000/health"}
+{"level":"info","time":"2025-09-21T23:40:51.062Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","req":{"id":1,"method":"GET","url":"/api/companies/validate/test-firma","query":{},"params":{},"headers":{"host":"localhost:3000","user-agent":"curl/8.7.1","accept":"*/*"},"remoteAddress":"127.0.0.1","remotePort":59633},"res":{"statusCode":200,"headers":{"content-security-policy":"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests","cross-origin-opener-policy":"same-origin","cross-origin-resource-policy":"cross-origin","origin-agent-cluster":"?1","referrer-policy":"no-referrer","strict-transport-security":"max-age=15552000; includeSubDomains","x-content-type-options":"nosniff","x-dns-prefetch-control":"off","x-download-options":"noopen","x-frame-options":"SAMEORIGIN","x-permitted-cross-domain-policies":"none","x-xss-protection":"0","vary":"Origin, Accept-Encoding","access-control-allow-credentials":"true","ratelimit-policy":"100;w=900","ratelimit-limit":"100","ratelimit-remaining":"99","ratelimit-reset":"900","content-type":"application/json; charset=utf-8","content-length":"105","etag":"W/\"69-/iXHUYduf3/bNg5SyHshelCX2nQ\""}},"responseTime":166,"msg":"GET /validate/test-firma - 200"}
+1:42:55 AM [tsx] change in ./src/utils/environment.ts Restarting...
+{"level":"info","time":"2025-09-21T23:42:55.210Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"Received SIGTERM. Starting graceful shutdown..."}
+Stopping all scheduled jobs...
+Stopped job: overtime-check
+Stopped job: audit-cleanup
+Stopped job: health-check
+Stopped job: weekly-summary
+{"level":"info","time":"2025-09-21T23:42:55.210Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"HTTP server closed."}
+{"level":"info","time":"2025-09-21T23:42:55.215Z","pid":33541,"hostname":"unknown","service":"attendance-pro-backend","msg":"Database connection closed."}
+cEmail service not configured - missing SMTP environment variables
+Initializing scheduled jobs...
+Scheduled job 'overtime-check' with cron expression: */30 8-20 * * 1-5
+Scheduled job 'audit-cleanup' with cron expression: 0 2 * * *
+Scheduled job 'health-check' with cron expression: 0 * * * *
+Scheduled job 'weekly-summary' with cron expression: 0 9 * * 1
+Initialized 4 scheduled jobs
+{"level":"info","time":"2025-09-21T23:42:56.024Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"Database info: Starting a postgresql pool with 29 connections."}
+{"level":"info","time":"2025-09-21T23:42:56.588Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"Database connected successfully"}
+{"level":"info","time":"2025-09-21T23:42:56.596Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"🚀 Server running on port 3000"}
+{"level":"info","time":"2025-09-21T23:42:56.596Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"📱 Environment: production"}
+{"level":"info","time":"2025-09-21T23:42:56.596Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"🌐 CORS origins: http://localhost:5173,https://postgres-production-1066.up.railway.app"}
+{"level":"info","time":"2025-09-21T23:42:56.596Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"📊 Health check: http://0.0.0.0:3000/health"}
+{"level":"info","time":"2025-09-21T23:45:07.914Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"Received SIGTERM. Starting graceful shutdown..."}
+Stopping all scheduled jobs...
+Stopped job: overtime-check
+Stopped job: audit-cleanup
+Stopped job: health-check
+Stopped job: weekly-summary
+{"level":"info","time":"2025-09-21T23:45:07.914Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"HTTP server closed."}
+{"level":"info","time":"2025-09-21T23:45:07.920Z","pid":36301,"hostname":"unknown","service":"attendance-pro-backend","msg":"Database connection closed."}

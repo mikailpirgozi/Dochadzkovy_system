@@ -63,7 +63,7 @@ export class WebSocketService {
         return;
       }
 
-      const baseURL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+      const baseURL = process.env.EXPO_PUBLIC_API_URL || 'https://backend-api-production-03aa.up.railway.app';
       const wsURL = baseURL.replace(/^http/, 'ws');
 
       this.socket = io(wsURL, {

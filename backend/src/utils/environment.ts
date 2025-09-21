@@ -29,7 +29,7 @@ export const validateEnvironment = (): EnvironmentConfig => {
     SMTP_FROM: process.env.SMTP_FROM ?? '',
     EXPO_ACCESS_TOKEN: process.env.EXPO_ACCESS_TOKEN ?? '',
     RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '900000', 10), // 15 minutes
-    RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS ?? '1000', 10), // Increased for development
+    RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS ?? '2000', 10), // Increased for development with multiple components
     LOG_LEVEL: process.env.LOG_LEVEL ?? 'info',
     ADMIN_DASHBOARD_URL: process.env.ADMIN_DASHBOARD_URL ?? '',
     MAX_FILE_SIZE: process.env.MAX_FILE_SIZE ? parseInt(process.env.MAX_FILE_SIZE, 10) : 5242880,
