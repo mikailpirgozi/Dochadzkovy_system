@@ -7,11 +7,11 @@ import pinoHttp from 'pino-http';
 import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 
-import { prisma } from './utils/database';
-import { errorHandler } from './middleware/errorHandler';
-import { notFoundHandler } from './middleware/notFoundHandler';
-import { validateEnvironment } from './utils/environment';
-import { logger } from './utils/logger';
+import { prisma } from './utils/database.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { notFoundHandler } from './middleware/notFoundHandler.js';
+import { validateEnvironment } from './utils/environment.js';
+import { logger } from './utils/logger.js';
 import { WebSocketService } from './services/websocket.service.js';
 import { SchedulerService } from './services/scheduler.service.js';
 
