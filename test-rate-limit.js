@@ -66,9 +66,9 @@ async function testRateLimit() {
         .forEach(r => console.log(`  Request ${r.index}: ${r.message}`));
     }
     
-    if (successful > 40) {
+    if (successful > 15) {
       console.log('\n🎉 Rate limit seems to be working well - most requests succeeded!');
-    } else if (rateLimited > 20) {
+    } else if (rateLimited > 10) {
       console.log('\n⚠️  Many requests were rate limited - might need to increase limit for development');
     }
     
