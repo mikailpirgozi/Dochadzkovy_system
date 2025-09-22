@@ -147,6 +147,18 @@ app.use('/api/bulk', bulkOperationsRoutes);
 
 // WebSocket service is now initialized and handling connections
 
+// TEMPORARY: Seed endpoint for Railway (remove after use)
+app.post('/api/admin/seed', async (req, res) => {
+  try {
+    const { execSync } = await import('child_process');
+    execSync('npm run db:fresh', { cwd: process.cwd() });
+    res.json({ success: true, message: 'Database seeded successfully' });
+  } catch (error) {
+    console.error('Seed error:', error);
+    res.status(500).json({ success: false, error: 'Seed failed' });
+  }
+});
+
 // Error handling middleware (must be last)
 app.use(notFoundHandler);
 app.use(errorHandler);
