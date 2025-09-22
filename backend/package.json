@@ -15,6 +15,7 @@
     "db:seed": "tsx src/scripts/seed.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
+    "db:fresh": "tsx src/scripts/seed.ts",
     "lint": "eslint src --max-warnings=0",
     "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",

@@ -6,16 +6,45 @@ const prisma = new PrismaClient();
 async function main() {
    
   console.log('🌱 Seeding database...');
+  
+  // Clean up existing data
+  console.log('🧹 Cleaning up existing data...');
+  await prisma.attendanceEvent.deleteMany({});
+  await prisma.locationLog.deleteMany({});
+  await prisma.alert.deleteMany({});
+  await prisma.correction.deleteMany({});
+  await prisma.businessTrip.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.company.deleteMany({});
+  console.log('✅ Existing data cleaned up');
 
-  // Create test company
-  const testCompany = await prisma.company.upsert({
-    where: { slug: 'test-firma' },
-    update: {},
-    create: {
+  // Default company settings
+  const defaultSettings = {
+    workingHours: {
+      start: '08:00',
+      end: '17:00'
+    },
+    breakSettings: {
+      maxBreakDuration: 60,
+      requireBreakApproval: false
+    },
+    geofenceSettings: {
+      alertAfterMinutes: 5,
+      strictMode: false
+    },
+    notifications: {
+      emailAlerts: true,
+      pushNotifications: true
+    }
+  };
+
+  // Create test company with proper settings
+  const testCompany = await prisma.company.create({
+    data: {
       name: 'Test Firma',
       slug: 'test-firma',
       qrCode: 'test-qr-code-123',
-      settings: {},
+      settings: defaultSettings,
       geofence: {
         latitude: 48.1486,
         longitude: 17.1077,
@@ -30,10 +59,8 @@ async function main() {
   // Create admin user
   const hashedPassword = await bcrypt.hash('admin123', 12);
   
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@test.sk' },
-    update: {},
-    create: {
+  const adminUser = await prisma.user.create({
+    data: {
       email: 'admin@test.sk',
       password: hashedPassword,
       firstName: 'Admin',
@@ -67,10 +94,8 @@ async function main() {
   // Create test employee
   const employeePassword = await bcrypt.hash('admin123', 12);
   
-  const employeeUser = await prisma.user.upsert({
-    where: { email: 'jan.novak@test.sk' },
-    update: {},
-    create: {
+  const employeeUser = await prisma.user.create({
+    data: {
       email: 'jan.novak@test.sk',
       password: employeePassword,
       firstName: 'Ján',
