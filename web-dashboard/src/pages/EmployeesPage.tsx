@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Search, Filter } from 'lucide-react';
+import { Users, Plus, Search, Filter, Trash2, AlertCircle } from 'lucide-react';
 import { getStatusColor, getStatusText } from '../lib/utils';
 import { dashboardApi } from '../lib/api';
 import { apiCache } from '../lib/cache';
@@ -24,7 +24,10 @@ export function EmployeesPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [newEmployee, setNewEmployee] = useState({
     firstName: '',
     lastName: '',
@@ -163,6 +166,47 @@ export function EmployeesPage() {
       console.error('Error updating employee:', error);
       const errorMessage = error instanceof Error ? error.message : 'Neznáma chyba';
       alert('Chyba pri aktualizácii zamestnanca: ' + errorMessage);
+    }
+  };
+
+  const handleDeleteEmployee = (employee: Employee) => {
+    setDeletingEmployee(employee);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteEmployee = async () => {
+    if (!deletingEmployee) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await dashboardApi.deleteEmployee(deletingEmployee.id);
+      
+      if (response.message) {
+        // Remove employee from the list or mark as deactivated
+        if (response.type === 'deleted') {
+          setEmployees(employees.filter(emp => emp.id !== deletingEmployee.id));
+          alert('Zamestnanec bol úspešne vymazaný');
+        } else {
+          setEmployees(employees.map(emp => 
+            emp.id === deletingEmployee.id 
+              ? { ...emp, isActive: false, currentStatus: 'inactive' }
+              : emp
+          ));
+          alert('Zamestnanec bol deaktivovaný (mal súvisiace dáta)');
+        }
+        
+        setShowDeleteModal(false);
+        setDeletingEmployee(null);
+        
+        // Invalidate cache to refresh employee list
+        apiCache.delete('employees');
+      }
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Neznáma chyba';
+      alert('Chyba pri mazaní zamestnanca: ' + errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -336,8 +380,15 @@ export function EmployeesPage() {
                       Upraviť
                     </button>
                     <button 
+                      onClick={() => handleDeleteEmployee(employee)}
+                      className="text-red-600 hover:text-red-900 mr-3"
+                      title="Vymazať zamestnanca"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <button 
                       onClick={() => handleDeactivateEmployee(employee)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-orange-600 hover:text-orange-900"
                       disabled={!employee.isActive}
                     >
                       {employee.isActive ? 'Deaktivovať' : 'Deaktivovaný'}
@@ -513,6 +564,60 @@ export function EmployeesPage() {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
                   Uložiť
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Employee Modal */}
+      {showDeleteModal && deletingEmployee && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center mb-4">
+                <AlertCircle className="h-6 w-6 text-red-600 mr-2" />
+                <h3 className="text-lg font-medium text-gray-900">
+                  Vymazať zamestnanca
+                </h3>
+              </div>
+              
+              <p className="text-gray-600 mb-6">
+                Naozaj chcete vymazať zamestnanca <strong>{deletingEmployee.firstName} {deletingEmployee.lastName}</strong>?
+                <br />
+                <span className="block mt-2 text-sm text-amber-600">
+                  Pozor: Ak má zamestnanec existujúce záznamy dochádzky, bude deaktivovaný namiesto vymazania.
+                </span>
+              </p>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletingEmployee(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  disabled={isDeleting}
+                >
+                  Zrušiť
+                </button>
+                <button
+                  onClick={confirmDeleteEmployee}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Mazanie...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Vymazať
+                    </>
+                  )}
                 </button>
               </div>
             </div>
