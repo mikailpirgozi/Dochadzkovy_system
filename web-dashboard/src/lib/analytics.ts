@@ -1,4 +1,4 @@
-import { dashboardApi } from './api';
+import api from './api';
 
 export interface AdvancedAnalytics {
   // Performance Metrics
@@ -110,14 +110,8 @@ export class AdvancedAnalyticsService {
    */
   static async getAdvancedAnalytics(): Promise<AdvancedAnalytics> {
     try {
-      // In a real implementation, this would call multiple API endpoints
-      // For now, we'll simulate the data structure
-      
-      const response = await dashboardApi.getStats();
-      const baseStats = response.data;
-
-      // Simulate advanced analytics based on base stats
-      return this.generateAdvancedAnalytics(baseStats);
+      const response = await api.get('/advanced-analytics');
+      return response.data.data;
     } catch (error) {
       console.error('Error getting advanced analytics:', error);
       return this.getFallbackAnalytics();
@@ -131,29 +125,8 @@ export class AdvancedAnalyticsService {
     period: 'week' | 'month' | 'quarter'
   ): Promise<TimeSeriesData[]> {
     try {
-      // Simulate productivity trend data
-      const now = new Date();
-      const data: TimeSeriesData[] = [];
-      
-      const periods = period === 'week' ? 7 : period === 'month' ? 30 : 90;
-      
-      for (let i = periods - 1; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        
-        // Simulate productivity score with some variance
-        const baseScore = 75 + Math.sin(i / 10) * 10;
-        const variance = (Math.random() - 0.5) * 20;
-        const score = Math.max(0, Math.min(100, baseScore + variance));
-        
-        data.push({
-          date: date.toISOString().split('T')[0],
-          value: Math.round(score),
-          label: `${Math.round(score)}% produktivita`
-        });
-      }
-      
-      return data;
+      const response = await api.get(`/advanced-analytics/productivity-trends?period=${period}`);
+      return response.data.data;
     } catch (error) {
       console.error('Error getting productivity trends:', error);
       return [];
@@ -165,41 +138,8 @@ export class AdvancedAnalyticsService {
    */
   static async getAttendanceHeatmap(): Promise<HeatmapData[]> {
     try {
-      const heatmapData: HeatmapData[] = [];
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      
-      // Generate heatmap data for each day and hour
-      days.forEach(day => {
-        for (let hour = 0; hour < 24; hour++) {
-          // Simulate attendance intensity based on typical work patterns
-          let intensity = 0;
-          
-          if (hour >= 8 && hour <= 17) {
-            // Work hours - higher intensity
-            intensity = 70 + Math.random() * 30;
-          } else if (hour >= 6 && hour <= 8 || hour >= 17 && hour <= 19) {
-            // Commute hours - medium intensity
-            intensity = 20 + Math.random() * 30;
-          } else {
-            // Off hours - low intensity
-            intensity = Math.random() * 10;
-          }
-          
-          // Weekend adjustment
-          if (day === 'Saturday' || day === 'Sunday') {
-            intensity *= 0.2;
-          }
-          
-          heatmapData.push({
-            day,
-            hour,
-            value: Math.round(intensity),
-            intensity: intensity > 60 ? 'high' : intensity > 30 ? 'medium' : 'low'
-          });
-        }
-      });
-      
-      return heatmapData;
+      const response = await api.get('/advanced-analytics/attendance-heatmap');
+      return response.data.data;
     } catch (error) {
       console.error('Error getting attendance heatmap:', error);
       return [];
@@ -230,45 +170,8 @@ export class AdvancedAnalyticsService {
     };
   }> {
     try {
-      // Simulate cost data
-      const now = new Date();
-      const periods = period === 'week' ? 7 : period === 'month' ? 30 : 90;
-      
-      const totalCosts: TimeSeriesData[] = [];
-      const baseCost = 50000; // Base monthly cost
-      
-      for (let i = periods - 1; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        
-        const variance = (Math.random() - 0.5) * 0.2;
-        const cost = baseCost * (1 + variance);
-        
-        totalCosts.push({
-          date: date.toISOString().split('T')[0],
-          value: Math.round(cost),
-          label: `€${Math.round(cost).toLocaleString()}`
-        });
-      }
-      
-      const costBreakdown = [
-        { category: 'Základné mzdy', amount: 35000, percentage: 70, color: '#3b82f6' },
-        { category: 'Nadčasy', amount: 8000, percentage: 16, color: '#ef4444' },
-        { category: 'Benefity', amount: 5000, percentage: 10, color: '#10b981' },
-        { category: 'Ostatné', amount: 2000, percentage: 4, color: '#f59e0b' },
-      ];
-      
-      const projections = {
-        nextPeriod: 52000,
-        trend: 'increasing' as const,
-        savingsOpportunities: [
-          { area: 'Optimalizácia nadčasov', potentialSavings: 3000, difficulty: 'medium' as const },
-          { area: 'Automatizácia procesov', potentialSavings: 2000, difficulty: 'hard' as const },
-          { area: 'Lepšie plánovanie zmien', potentialSavings: 1500, difficulty: 'easy' as const },
-        ]
-      };
-      
-      return { totalCosts, costBreakdown, projections };
+      const response = await api.get(`/advanced-analytics/cost-analysis?period=${period}`);
+      return response.data.data;
     } catch (error) {
       console.error('Error getting cost analysis:', error);
       return {

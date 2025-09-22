@@ -16,7 +16,7 @@ export default {
     assetBundlePatterns: ["**/*"],
     ios: {
       supportsTablet: false,
-      bundleIdentifier: "com.yourcompany.attendancepro",
+      bundleIdentifier: "com.dochadzkapro.attendance",
       buildNumber: "1",
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "Táto aplikácia potrebuje prístup k polohe pre overenie vašej pozície pri pipnutí do práce.",
@@ -53,7 +53,7 @@ export default {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#3b82f6"
       },
-      package: "com.yourcompany.attendancepro",
+      package: "com.dochadzkapro.attendance",
       versionCode: 1,
       permissions: [
         "ACCESS_FINE_LOCATION",

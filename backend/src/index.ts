@@ -30,6 +30,8 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 import reportRoutes from './routes/report.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import overtimeRoutes from './routes/overtime.routes.js';
+import advancedAnalyticsRoutes from './routes/advanced-analytics.routes.js';
+import bulkOperationsRoutes from './routes/bulk-operations.routes.js';
 
 // Validate environment variables
 const config = validateEnvironment();
@@ -140,6 +142,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/overtime', overtimeRoutes);
+app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
+app.use('/api/bulk', bulkOperationsRoutes);
 
 // WebSocket service is now initialized and handling connections
 

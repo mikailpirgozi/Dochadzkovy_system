@@ -7,10 +7,27 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "simulator": true
       },
       "android": {
         "resourceClass": "medium"
+      }
+    },
+    "development-device": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "resourceClass": "medium",
+        "buildType": "developmentClient"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-api-production-03aa.up.railway.app/api",
+        "EXPO_PUBLIC_ENVIRONMENT": "development"
       }
     },
     "preview": {
@@ -27,7 +44,8 @@
     "production": {
       "ios": {
         "resourceClass": "m-medium",
-        "autoIncrement": true
+        "autoIncrement": true,
+        "distribution": "store"
       },
       "android": {
         "resourceClass": "medium",
@@ -36,6 +54,14 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://backend-api-production-03aa.up.railway.app/api",
         "EXPO_PUBLIC_ENVIRONMENT": "production"
+      }
+    },
+    "testflight": {
+      "extends": "production",
+      "ios": {
+        "resourceClass": "m-medium",
+        "autoIncrement": true,
+        "distribution": "store"
       }
     }
   },

@@ -85,25 +85,25 @@ export class BulkOperationsService {
    */
   static async importEmployees(importData: BulkEmployeeImport): Promise<BulkOperation> {
     try {
-      // In a real implementation, this would call the backend API
-      // For now, we'll simulate the operation
-      
-      const operationId = `bulk_import_${Date.now()}`;
-      
-      // Simulate API call
       const response = await fetch('/api/bulk/import-employees', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
         body: JSON.stringify(importData)
       });
 
       if (!response.ok) {
-        throw new Error('Import failed');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Import failed');
       }
 
       const result = await response.json();
       
-      return {
+      // Return operation ID, then poll for status
+      const operationId = result.data.operationId;
+      return await this.getBulkOperationStatus(operationId) || {
         id: operationId,
         type: 'import',
         status: 'processing',
@@ -111,8 +111,7 @@ export class BulkOperationsService {
         totalItems: importData.employees.length,
         processedItems: 0,
         failedItems: 0,
-        createdAt: new Date().toISOString(),
-        results: result
+        createdAt: new Date().toISOString()
       };
     } catch (error) {
       console.error('Error importing employees:', error);
@@ -197,18 +196,26 @@ export class BulkOperationsService {
   /**
    * Get bulk operation status
    */
-  static async getBulkOperationStatus(operationId: string): Promise<BulkOperation> {
+  static async getBulkOperationStatus(operationId: string): Promise<BulkOperation | null> {
     try {
-      const response = await fetch(`/api/bulk/operations/${operationId}`);
+      const response = await fetch(`/api/bulk/operations/${operationId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
       
       if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
         throw new Error('Failed to get operation status');
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error getting operation status:', error);
-      throw new Error('Nepodarilo sa získať stav operácie');
+      return null;
     }
   }
 
@@ -217,13 +224,18 @@ export class BulkOperationsService {
    */
   static async getBulkOperations(limit = 20): Promise<BulkOperation[]> {
     try {
-      const response = await fetch(`/api/bulk/operations?limit=${limit}`);
+      const response = await fetch(`/api/bulk/operations?limit=${limit}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Failed to get bulk operations');
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data || [];
     } catch (error) {
       console.error('Error getting bulk operations:', error);
       return [];
@@ -236,7 +248,10 @@ export class BulkOperationsService {
   static async cancelBulkOperation(operationId: string): Promise<void> {
     try {
       const response = await fetch(`/api/bulk/operations/${operationId}/cancel`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
       });
 
       if (!response.ok) {
@@ -326,9 +341,12 @@ export class AdvancedSearchService {
     aggregations?: Record<string, any>;
   }> {
     try {
-      const response = await fetch('/api/employees/advanced-search', {
+      const response = await fetch('/api/bulk/search/employees', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
         body: JSON.stringify(searchParams)
       });
 
@@ -336,7 +354,8 @@ export class AdvancedSearchService {
         throw new Error('Search failed');
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error in advanced search:', error);
       return {
@@ -355,9 +374,12 @@ export class AdvancedSearchService {
     aggregations?: Record<string, any>;
   }> {
     try {
-      const response = await fetch('/api/attendance/advanced-search', {
+      const response = await fetch('/api/bulk/search/attendance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
         body: JSON.stringify(searchParams)
       });
 
@@ -365,7 +387,8 @@ export class AdvancedSearchService {
         throw new Error('Search failed');
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error in attendance search:', error);
       return {
