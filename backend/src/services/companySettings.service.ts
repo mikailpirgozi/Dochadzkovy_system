@@ -7,12 +7,17 @@ export class CompanySettingsService {
    * Get company settings
    */
   async getCompanySettings(companyId: string): Promise<CompanySettings> {
+    console.log(`[CompanySettingsService] Looking for company with ID: ${companyId}`);
+    
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { settings: true }
+      select: { id: true, name: true, settings: true }
     });
 
+    console.log(`[CompanySettingsService] Found company:`, company);
+
     if (!company) {
+      console.log(`[CompanySettingsService] Company not found with ID: ${companyId}`);
       throw new CustomError('Company not found', 404);
     }
 
