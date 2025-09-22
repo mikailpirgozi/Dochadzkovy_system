@@ -1,10 +1,8 @@
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { prisma } from '../utils/database.js';
 import type { 
   AttendanceEventWithUser, 
-  FilterOptions,
   CorrectionStatus,
-  ExportOptions,
   ExportOptionsInput
 } from '../types/index.js';
 import type { BusinessTripStatus, EventType } from '@prisma/client';
@@ -83,7 +81,7 @@ export class ExportService {
     // Generate export file
     const format = options.format || 'csv';
     if (format === 'excel') {
-      return this.generateExcelExport(transformedData, { ...options, format });
+      return await this.generateExcelExport(transformedData, { ...options, format });
     } else {
       return this.generateCSVExport(transformedData, { ...options, format });
     }
@@ -170,7 +168,7 @@ export class ExportService {
     // Generate export file
     const format = options.format || 'csv';
     if (format === 'excel') {
-      return this.generateExcelExport(transformedData, { 
+      return await this.generateExcelExport(transformedData, { 
         ...options, 
         format,
         filename: 'business-trips' 
@@ -276,7 +274,7 @@ export class ExportService {
     // Generate export file
     const format = options.format || 'csv';
     if (format === 'excel') {
-      return this.generateExcelExport(transformedData, { 
+      return await this.generateExcelExport(transformedData, { 
         ...options, 
         format,
         filename: 'corrections' 
@@ -488,29 +486,48 @@ export class ExportService {
   /**
    * Generate Excel export
    */
-  private generateExcelExport(
+  private async generateExcelExport(
     data: Array<Record<string, string>>,
     options: Partial<ExportOptionsInput> & { filename?: string; format?: string }
-  ): ExportData {
-    const workbook = XLSX.utils.book_new();
+  ): Promise<ExportData> {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Data');
     
-    // Create worksheet
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    if (data.length === 0) {
+      throw new CustomError('No data to export', 400);
+    }
+
+    // Get headers from first row
+    const headers = Object.keys(data[0] ?? {});
+    
+    // Add headers
+    worksheet.addRow(headers);
+    
+    // Add data rows
+    data.forEach(row => {
+      const values = headers.map(header => row[header] ?? '');
+      worksheet.addRow(values);
+    });
     
     // Auto-size columns
-    const firstRow = data[0];
-    if (firstRow) {
-      const colWidths = Object.keys(firstRow).map((key: string) => ({
-        wch: Math.max(key.length, 15)
-      }));
-      worksheet['!cols'] = colWidths;
-    }
+    worksheet.columns.forEach((column, index) => {
+      const header = headers[index];
+      if (header) {
+        column.width = Math.max(header.length, 15);
+      }
+    });
     
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+    // Style header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
     
     // Generate buffer
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    const buffer = await workbook.xlsx.writeBuffer();
     
     const baseFilename = options.filename ?? 'attendance';
     const dateStr = new Date().toISOString().split('T')[0] ?? '';
@@ -519,7 +536,7 @@ export class ExportService {
     return {
       filename,
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      buffer
+      buffer: Buffer.from(buffer)
     };
   }
 

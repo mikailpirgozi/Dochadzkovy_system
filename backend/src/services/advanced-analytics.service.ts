@@ -163,8 +163,8 @@ export class AdvancedAnalyticsService {
     let onTimeDays = 0;
     let lateArrivals = 0;
     let earlyDepartures = 0;
-    let arrivalTimes: number[] = [];
-    let departureTimes: number[] = [];
+    const arrivalTimes: number[] = [];
+    const departureTimes: number[] = [];
 
     for (const employee of employees) {
       const dailyEvents = this.groupEventsByDay(employee.attendanceEvents);
@@ -403,7 +403,7 @@ export class AdvancedAnalyticsService {
       );
 
       const dailyHours = this.groupEventsByDay(recentEvents);
-      const hoursArray = Object.values(dailyHours).filter(h => typeof h === 'number') as number[];
+      const hoursArray = Object.values(dailyHours).filter(h => typeof h === 'number');
 
       if (hoursArray.length > 0) {
         const avgHours = hoursArray.reduce((a, b) => a + b, 0) / hoursArray.length;
@@ -734,10 +734,10 @@ export class AdvancedAnalyticsService {
    * Helper method to group events by day and calculate hours
    */
   private static groupEventsByDay(events: any[]) {
-    const dailyHours: { [key: string]: number } = {};
+    const dailyHours: Record<string, number> = {};
     
     // Group events by date
-    const eventsByDate: { [key: string]: any[] } = {};
+    const eventsByDate: Record<string, any[]> = {};
     
     for (const event of events) {
       const date = event.timestamp.toISOString().split('T')[0];

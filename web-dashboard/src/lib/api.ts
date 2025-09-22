@@ -195,8 +195,8 @@ export const dashboardApi = {
     makeRequest(() => api.get('/alerts/stats', { params: { hours } })),
   
   // Settings management
-  getCompanySettings: (slug: string) => makeRequest(() => api.get(`/companies/${slug}/settings`)),
-  updateCompanySettings: (slug: string, data: Record<string, unknown>) => makeRequest(() => api.put(`/companies/${slug}/settings`, data)),
+  getCompanySettings: () => makeRequest(() => api.get('/companies/settings')),
+  updateCompanySettings: (data: Record<string, unknown>) => makeRequest(() => api.put('/companies/settings', data)),
   
   // Statistics APIs
   getEmployeeStatistics: (period: 'day' | 'week' | 'month', date?: string) => {

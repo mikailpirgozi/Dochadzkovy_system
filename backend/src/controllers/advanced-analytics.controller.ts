@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Request } from 'express';
 import { AdvancedAnalyticsService } from '../services/advanced-analytics.service.js';
-import { AuthenticatedRequest } from '../types/index.js';
+import type { AuthenticatedRequest } from '../types/index.js';
 
 export class AdvancedAnalyticsController {
   /**

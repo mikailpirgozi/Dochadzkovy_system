@@ -1,5 +1,6 @@
 import { prisma } from '../utils/database.js';
 import type { AttendanceEvent, User } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
 // import { DashboardService } from './dashboard.service.js';
 
 interface DateRange {
@@ -239,12 +240,60 @@ export class ReportService {
   }
 
   /**
-   * Export report to Excel format (simplified - would need a library like exceljs for full implementation)
+   * Export report to Excel format
    */
   static async exportToExcel(companyId: string, dateRange: DateRange): Promise<Buffer> {
-    // This is a placeholder - in real implementation, you would use a library like exceljs
-    const csvData = await this.exportToCSV(companyId, dateRange);
-    return Buffer.from(csvData, 'utf-8');
+    const report = await this.generateAttendanceReport(companyId, dateRange);
+    
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Attendance Report');
+    
+    // Add headers
+    const headers = [
+      'Meno',
+      'Email',
+      'Celkové hodiny',
+      'Pracovné dni',
+      'Priemer hodín/deň',
+      'Punktualita (%)',
+      'Počet udalostí'
+    ];
+    
+    worksheet.addRow(headers);
+    
+    // Add data rows
+    report.employees.forEach((emp: any) => {
+      worksheet.addRow([
+        emp.name,
+        emp.email,
+        emp.totalHours,
+        emp.workingDays,
+        emp.averageHoursPerDay,
+        emp.punctualityScore,
+        emp.events.length
+      ]);
+    });
+    
+    // Style header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+    
+    // Auto-size columns
+    worksheet.columns.forEach((column, index) => {
+      const header = headers[index];
+      if (header) {
+        column.width = Math.max(header.length, 15);
+      }
+    });
+    
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 
   /**

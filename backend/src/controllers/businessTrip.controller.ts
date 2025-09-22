@@ -233,8 +233,7 @@ export class BusinessTripController {
     const validatedData = startBusinessTripSchema.parse(req.body);
 
     // Ensure location data is complete
-    if (!validatedData.location || 
-        validatedData.location.latitude === undefined || 
+    if (validatedData.location?.latitude === undefined || 
         validatedData.location.longitude === undefined) {
       throw new CustomError('Complete location data is required', 400);
     }
@@ -270,8 +269,7 @@ export class BusinessTripController {
     const validatedData = endBusinessTripSchema.parse(req.body);
 
     // Ensure location data is complete
-    if (!validatedData.location || 
-        validatedData.location.latitude === undefined || 
+    if (validatedData.location?.latitude === undefined || 
         validatedData.location.longitude === undefined) {
       throw new CustomError('Complete location data is required', 400);
     }

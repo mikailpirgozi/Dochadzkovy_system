@@ -15,7 +15,7 @@ router.use(authMiddleware);
 router.get(
   '/',
   requireRole(['COMPANY_ADMIN', 'MANAGER']),
-  AdvancedAnalyticsController.getAdvancedAnalytics
+  AdvancedAnalyticsController.getAdvancedAnalytics as any
 );
 
 /**

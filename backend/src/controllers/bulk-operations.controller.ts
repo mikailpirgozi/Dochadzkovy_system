@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { BulkOperationsService, AdvancedSearchService } from '../services/bulk-operations.service.js';
-import { AuthenticatedRequest } from '../types/index.js';
+import type { AuthenticatedRequest } from '../types/index.js';
 import { z } from 'zod';
 
 // Validation schemas

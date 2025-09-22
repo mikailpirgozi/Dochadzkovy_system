@@ -37,28 +37,46 @@ export class CompanySettingsService {
     };
 
     if (!company.settings || typeof company.settings !== 'object') {
+      // Save default settings to database
+      await prisma.company.update({
+        where: { id: companyId },
+        data: { settings: defaultSettings as any }
+      });
       return defaultSettings;
     }
 
     // Merge with defaults to ensure all properties exist
-    return {
+    const mergedSettings: CompanySettings = {
       workingHours: {
         start: (company.settings as any).workingHours?.start || defaultSettings.workingHours.start,
         end: (company.settings as any).workingHours?.end || defaultSettings.workingHours.end
       },
       breakSettings: {
         maxBreakDuration: (company.settings as any).breakSettings?.maxBreakDuration || defaultSettings.breakSettings.maxBreakDuration,
-        requireBreakApproval: (company.settings as any).breakSettings?.requireBreakApproval || defaultSettings.breakSettings.requireBreakApproval
+        requireBreakApproval: (company.settings as any).breakSettings?.requireBreakApproval ?? defaultSettings.breakSettings.requireBreakApproval
       },
       geofenceSettings: {
         alertAfterMinutes: (company.settings as any).geofenceSettings?.alertAfterMinutes || defaultSettings.geofenceSettings.alertAfterMinutes,
-        strictMode: (company.settings as any).geofenceSettings?.strictMode || defaultSettings.geofenceSettings.strictMode
+        strictMode: (company.settings as any).geofenceSettings?.strictMode ?? defaultSettings.geofenceSettings.strictMode
       },
       notifications: {
-        emailAlerts: (company.settings as any).notifications?.emailAlerts !== false,
-        pushNotifications: (company.settings as any).notifications?.pushNotifications !== false
+        emailAlerts: (company.settings as any).notifications?.emailAlerts ?? defaultSettings.notifications.emailAlerts,
+        pushNotifications: (company.settings as any).notifications?.pushNotifications ?? defaultSettings.notifications.pushNotifications
       }
     };
+
+    // If settings were incomplete, update them in database
+    const currentSettingsString = JSON.stringify(company.settings);
+    const mergedSettingsString = JSON.stringify(mergedSettings);
+    
+    if (currentSettingsString !== mergedSettingsString) {
+      await prisma.company.update({
+        where: { id: companyId },
+        data: { settings: mergedSettings as any }
+      });
+    }
+
+    return mergedSettings;
   }
 
   /**

@@ -26,7 +26,7 @@ const exportBusinessTripsSchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional()
 });
 
-type ExportOptions = z.infer<typeof exportAttendanceSchema>;
+// type ExportOptions = z.infer<typeof exportAttendanceSchema>;
 
 const exportCorrectionsSchema = z.object({
   format: z.enum(['csv', 'excel']).default('csv'),
@@ -268,7 +268,7 @@ export class ExportController {
       // Get small sample of data for preview
       const exportData = await this.exportService.exportAttendanceData(
         user.companyId,
-        validatedQuery
+        validatedQuery as any
       );
 
       // Convert buffer to string and parse first few rows
