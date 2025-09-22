@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios';
 import { withCache, apiCache } from './cache';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-api-production-03aa.up.railway.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // Rate limiting and retry configuration
 const RETRY_CONFIG = {

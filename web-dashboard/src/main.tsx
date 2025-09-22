@@ -38,5 +38,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 // Log the actual API URL being used
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-api-production-03aa.up.railway.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 console.log("API_URL:", API_URL);

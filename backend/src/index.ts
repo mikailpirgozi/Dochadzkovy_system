@@ -130,13 +130,13 @@ app.get('/health', (_req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/companies/settings', companySettingsRoutes); // Must be before /api/companies
 app.use('/api/companies', companyRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/corrections', correctionRoutes);
 app.use('/api/business-trips', businessTripRoutes);
-app.use('/api/companies/settings', companySettingsRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
