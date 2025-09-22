@@ -152,7 +152,7 @@ app.post('/api/admin/seed', async (req, res) => {
   try {
     // Import and run seed script directly
     const { PrismaClient } = await import('@prisma/client');
-    const bcrypt = await import('bcryptjs');
+    const bcrypt = (await import('bcryptjs')).default;
     
     const prisma = new PrismaClient();
     
