@@ -56,7 +56,17 @@ export class ChartsService {
   static async getWeeklyChartData(startDate?: string): Promise<WeeklyChartData> {
     try {
       const response = await dashboardApi.getWeeklyChartData(startDate);
-      return response?.data || response; // Handle both wrapped and direct responses
+      console.log('📊 Weekly chart raw response:', response);
+      
+      const data = response?.data || response;
+      console.log('📊 Weekly chart processed data:', data);
+      
+      // Ensure we have the required structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response structure');
+      }
+      
+      return data;
     } catch (error) {
       console.error('Error getting weekly chart data:', error);
       // Return fallback data for better UX
@@ -77,7 +87,16 @@ export class ChartsService {
   static async getMonthlyChartData(year?: number, month?: number): Promise<MonthlyChartData> {
     try {
       const response = await dashboardApi.getMonthlyChartData(year, month);
-      return response?.data || response; // Handle both wrapped and direct responses
+      console.log('📊 Monthly chart raw response:', response);
+      
+      const data = response?.data || response;
+      console.log('📊 Monthly chart processed data:', data);
+      
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response structure');
+      }
+      
+      return data;
     } catch (error) {
       console.error('Error getting monthly chart data:', error);
       // Return fallback data for better UX
@@ -102,7 +121,16 @@ export class ChartsService {
   ): Promise<ComparisonChartData> {
     try {
       const response = await dashboardApi.getComparisonChartData(period, userIds, startDate);
-      return response?.data || response; // Handle both wrapped and direct responses
+      console.log('📊 Comparison chart raw response:', response);
+      
+      const data = response?.data || response;
+      console.log('📊 Comparison chart processed data:', data);
+      
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response structure');
+      }
+      
+      return data;
     } catch (error) {
       console.error('Error getting comparison chart data:', error);
       // Return fallback data for better UX

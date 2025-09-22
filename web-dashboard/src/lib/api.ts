@@ -206,14 +206,19 @@ export const dashboardApi = {
     return withCache(
       cacheKey,
       () => makeRequest(() => api.get('/dashboard/statistics', { params })),
-      3 * 60 * 1000 // 3 minutes cache
+      10 * 60 * 1000 // Increased to 10 minutes cache for better performance
     );
   },
   
   getDayActivities: (date: string, userId?: string) => {
     const params: Record<string, string> = { date };
     if (userId) params.userId = userId;
-    return makeRequest(() => api.get('/dashboard/day-activities', { params }));
+    const cacheKey = apiCache.generateKey('/dashboard/day-activities', params);
+    return withCache(
+      cacheKey,
+      () => makeRequest(() => api.get('/dashboard/day-activities', { params })),
+      5 * 60 * 1000 // 5 minutes cache for day activities
+    );
   },
   
   getRecentActivity: (limit?: number) => {

@@ -7,6 +7,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
+    "module": "esnext",
     "paths": {
       "@/*": [
         "./*"

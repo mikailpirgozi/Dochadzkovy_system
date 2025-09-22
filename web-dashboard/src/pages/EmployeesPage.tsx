@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Users, Plus, Search, Filter } from 'lucide-react';
 import { getStatusColor, getStatusText } from '../lib/utils';
 import { dashboardApi } from '../lib/api';
+import { apiCache } from '../lib/cache';
 import { useDebounce } from '../hooks/useDebounce';
 
 interface Employee {
@@ -38,18 +39,6 @@ export function EmployeesPage() {
     role: 'EMPLOYEE'
   });
 
-  // Debounced fetch function to prevent excessive API calls
-  const debouncedFetchEmployees = useDebounce(fetchEmployees, 500);
-
-  useEffect(() => {
-    fetchEmployees();
-    
-    // Auto-refresh every 2 minutes (reduced from 30 seconds)
-    const interval = setInterval(debouncedFetchEmployees, 2 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, [debouncedFetchEmployees]);
-
   const fetchEmployees = useCallback(async () => {
     console.log('🔄 Fetching employees...');
     try {
@@ -84,21 +73,33 @@ export function EmployeesPage() {
     }
   }, []);
 
+  // Debounced fetch function to prevent excessive API calls
+  const debouncedFetchEmployees = useDebounce(fetchEmployees, 500);
+
+  useEffect(() => {
+    fetchEmployees();
+    
+    // Auto-refresh every 2 minutes (reduced from 30 seconds)
+    const interval = setInterval(debouncedFetchEmployees, 2 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [debouncedFetchEmployees]);
+
   const handleAddEmployee = async () => {
     try {
       const response = await dashboardApi.createEmployee(newEmployee);
       
-      if (response.data.success) {
+      if (response.success) {
         // Add new employee to the list
         const createdEmployee = {
-          id: response.data.data.id,
-          firstName: response.data.data.firstName,
-          lastName: response.data.data.lastName,
-          email: response.data.data.email,
-          role: response.data.data.role,
-          isActive: response.data.data.isActive,
-          currentStatus: response.data.data.isActive ? 'active' : 'inactive',
-          lastSeen: response.data.data.createdAt,
+          id: response.data.id,
+          firstName: response.data.firstName,
+          lastName: response.data.lastName,
+          email: response.data.email,
+          role: response.data.role,
+          isActive: response.data.isActive,
+          currentStatus: response.data.isActive ? 'CLOCKED_OUT' : 'inactive',
+          lastSeen: response.data.createdAt,
           workingHours: 0
         };
         
@@ -111,10 +112,14 @@ export function EmployeesPage() {
           role: 'EMPLOYEE',
           password: ''
         });
+        
+        // Invalidate cache to refresh employee list
+        apiCache.delete('employees');
       }
     } catch (error) {
       console.error('Error creating employee:', error);
-      alert('Chyba pri vytváraní zamestnanca');
+      const errorMessage = error instanceof Error ? error.message : 'Neznáma chyba';
+      alert('Chyba pri vytváraní zamestnanca: ' + errorMessage);
     }
   };
 
@@ -135,25 +140,29 @@ export function EmployeesPage() {
     try {
       const response = await dashboardApi.updateEmployee(editingEmployee.id, editEmployee);
       
-      if (response.data.success) {
+      if (response.success) {
         // Update employee in the list
         setEmployees(employees.map(emp => 
           emp.id === editingEmployee.id 
             ? {
                 ...emp,
-                firstName: response.data.data.firstName,
-                lastName: response.data.data.lastName,
-                email: response.data.data.email,
-                role: response.data.data.role
+                firstName: response.data.firstName,
+                lastName: response.data.lastName,
+                email: response.data.email,
+                role: response.data.role
               }
             : emp
         ));
         setShowEditModal(false);
         setEditingEmployee(null);
+        
+        // Invalidate cache to refresh employee list
+        apiCache.delete('employees');
       }
     } catch (error) {
       console.error('Error updating employee:', error);
-      alert('Chyba pri aktualizácii zamestnanca');
+      const errorMessage = error instanceof Error ? error.message : 'Neznáma chyba';
+      alert('Chyba pri aktualizácii zamestnanca: ' + errorMessage);
     }
   };
 
@@ -165,7 +174,7 @@ export function EmployeesPage() {
     try {
       const response = await dashboardApi.updateEmployee(employee.id, { isActive: false });
       
-      if (response.data.success) {
+      if (response.success) {
         // Update employee status in the list
         setEmployees(employees.map(emp => 
           emp.id === employee.id 
@@ -176,10 +185,14 @@ export function EmployeesPage() {
               }
             : emp
         ));
+        
+        // Invalidate cache to refresh employee list
+        apiCache.delete('employees');
       }
     } catch (error) {
       console.error('Error deactivating employee:', error);
-      alert('Chyba pri deaktivácii zamestnanca');
+      const errorMessage = error instanceof Error ? error.message : 'Neznáma chyba';
+      alert('Chyba pri deaktivácii zamestnanca: ' + errorMessage);
     }
   };
 

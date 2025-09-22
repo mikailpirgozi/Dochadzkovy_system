@@ -122,7 +122,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({ data, loading 
                 {dataset.data[0]?.toFixed(1)}h
               </Text>
               <Text className="text-sm text-gray-500">
-                ⌀ {dataset.averageHoursPerDay.toFixed(1)}h/deň
+                ⌀ {dataset.averageHoursPerDay?.toFixed(1) || '0.0'}h/deň
               </Text>
             </View>
           </View>

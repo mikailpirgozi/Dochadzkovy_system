@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { dashboardApi } from '../lib/api';
-import { useDebounce, useThrottle } from '../hooks/useDebounce';
+// Removed useDebounce and useThrottle to prevent duplicate API calls
 // Chart types are now handled by ChartContainer
 import { ChartContainer } from '../components/charts/ChartContainer';
 import { 
@@ -128,15 +128,11 @@ export function StatisticsPage() {
 
   // Chart data loading is now handled by ChartContainer
 
-  // Debounced loading to prevent excessive API calls
-  useDebounce(loadStatistics, 500);
-  
-  // Throttled refresh for manual refreshes
-  useThrottle(loadStatistics, 3000);
-
+  // OPTIMIZATION: Remove debounce and throttle hooks that cause duplicate calls
+  // Only load on mount and when dependencies actually change
   useEffect(() => {
     loadStatistics();
-  }, [loadStatistics]);
+  }, [loadStatistics]); // Keep loadStatistics dependency for proper updates
 
   const handlePeriodChange = (period: Period) => {
     setSelectedPeriod(period);

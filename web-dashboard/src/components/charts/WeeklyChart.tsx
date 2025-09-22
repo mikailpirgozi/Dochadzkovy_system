@@ -36,7 +36,16 @@ export const WeeklyChart: React.FC<WeeklyChartProps> = ({
   loading = false, 
   className = '' 
 }) => {
+  console.log('📊 WeeklyChart received props:', { data, loading });
+  
   if (loading || !data || !data.dailyData || !data.labels || !data.datasets) {
+    console.log('📊 WeeklyChart showing loading state:', { 
+      loading, 
+      hasData: !!data, 
+      hasDailyData: !!data?.dailyData,
+      hasLabels: !!data?.labels,
+      hasDatasets: !!data?.datasets 
+    });
     return (
       <div className={`bg-white rounded-lg p-6 shadow-sm border ${className}`}>
         <div className="animate-pulse">

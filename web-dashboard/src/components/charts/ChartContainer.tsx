@@ -20,18 +20,30 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({ className = '' }
       setLoading(true);
       setError(null);
 
-      const [weekly, monthly, comparison] = await Promise.all([
+      // OPTIMIZATION: Load charts with timeout and better error handling
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 30000) // 30 second timeout
+      );
+
+      const chartPromises = Promise.all([
         ChartsService.getWeeklyChartData(),
         ChartsService.getMonthlyChartData(),
         ChartsService.getComparisonChartData('week'),
       ]);
 
+      const [weekly, monthly, comparison] = await Promise.race([chartPromises, timeout]) as any;
+
+      console.log('📊 ChartContainer received data:', { weekly, monthly, comparison });
+      
       setWeeklyData(weekly);
       setMonthlyData(monthly);
       setComparisonData(comparison);
     } catch (err) {
       console.error('Error loading chart data:', err);
-      setError('Chyba pri načítavaní grafických dát');
+      const errorMessage = err instanceof Error && err.message === 'Request timeout' 
+        ? 'Načítavanie trvá dlhšie ako obvykle. Skúste obnoviť stránku.'
+        : 'Chyba pri načítavaní grafických dát. Skontrolujte internetové pripojenie.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

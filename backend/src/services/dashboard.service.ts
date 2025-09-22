@@ -1,5 +1,4 @@
 import { prisma } from '../utils/database.js';
-import type { UserRole } from '@prisma/client';
 
 export class DashboardService {
   private constructor() {
@@ -243,7 +242,7 @@ export class DashboardService {
   }
 
   /**
-   * Get weekly chart data for dashboard
+   * Get weekly chart data for dashboard - OPTIMIZED VERSION
    */
   static async getWeeklyChartData(companyId: string, startDate?: Date) {
     try {
@@ -255,25 +254,41 @@ export class DashboardService {
       weekEnd.setDate(weekEnd.getDate() + 6); // Sunday
       weekEnd.setHours(23, 59, 59, 999);
 
-      const employees = await prisma.user.findMany({
-        where: { 
-          companyId,
-          isActive: true,
-          role: 'EMPLOYEE'
-        },
-        include: {
-          attendanceEvents: {
-            where: {
-              timestamp: {
-                gte: weekStart,
-                lte: weekEnd,
-              }
-            },
-            orderBy: { timestamp: 'asc' }
-          }
-        }
-      });
+      // OPTIMIZATION: Use raw SQL for better performance
+      const weeklyQuery = `
+        WITH daily_hours AS (
+          SELECT 
+            DATE(ae.timestamp) as work_date,
+            ae."userId",
+            SUM(
+              CASE 
+                WHEN ae.type = 'CLOCK_OUT' AND 
+                     LAG(ae.type) OVER (PARTITION BY ae."userId", DATE(ae.timestamp) ORDER BY ae.timestamp) = 'CLOCK_IN'
+                THEN EXTRACT(EPOCH FROM (ae.timestamp - LAG(ae.timestamp) OVER (PARTITION BY ae."userId", DATE(ae.timestamp) ORDER BY ae.timestamp))) / 3600.0
+                ELSE 0
+              END
+            ) as daily_hours
+          FROM "AttendanceEvent" ae
+          JOIN users u ON ae."userId" = u.id
+          WHERE u."companyId" = $1 
+            AND u."isActive" = true 
+            AND u.role = 'EMPLOYEE'
+            AND ae.timestamp >= $2 
+            AND ae.timestamp <= $3
+          GROUP BY DATE(ae.timestamp), ae."userId"
+        )
+        SELECT 
+          work_date,
+          SUM(daily_hours) as total_hours,
+          COUNT(DISTINCT "userId") as active_employees
+        FROM daily_hours
+        GROUP BY work_date
+        ORDER BY work_date
+      `;
 
+      const rawResults = await prisma.$queryRawUnsafe(weeklyQuery, companyId, weekStart, weekEnd);
+      
+      // Initialize weekly data structure
       const weeklyData = {
         labels: ['Pon', 'Uto', 'Str', 'Štv', 'Pia', 'Sob', 'Ned'],
         datasets: [{
@@ -283,38 +298,143 @@ export class DashboardService {
         }],
         period: 'week' as const,
         startDate: weekStart.toISOString(),
-        endDate: weekEnd.toISOString()
+        endDate: weekEnd.toISOString(),
+        dailyData: [] as Array<{
+          date: string;
+          totalHours: number;
+          averageHours: number;
+          activeEmployees: number;
+        }>
       };
 
-      // Calculate daily hours for each day of the week
+      // Create a map for quick lookup
+      const dailyDataMap = new Map<string, { totalHours: number; activeEmployees: number }>();
+      
+      (rawResults as any[]).forEach((row: any) => {
+        const dateStr = new Date(row.work_date).toISOString().split('T')[0];
+        dailyDataMap.set(dateStr, {
+          totalHours: parseFloat(row.total_hours) || 0,
+          activeEmployees: parseInt(row.active_employees) || 0
+        });
+      });
+
+      // Fill in data for each day of the week
       for (let day = 0; day < 7; day++) {
-        const dayStart = new Date(weekStart);
-        dayStart.setDate(dayStart.getDate() + day);
-        dayStart.setHours(0, 0, 0, 0);
+        const currentDay = new Date(weekStart);
+        currentDay.setDate(currentDay.getDate() + day);
+        const dateStr = currentDay.toISOString().split('T')[0];
         
-        const dayEnd = new Date(dayStart);
-        dayEnd.setHours(23, 59, 59, 999);
-
-        let totalDayHours = 0;
-
-        for (const employee of employees) {
-          const dayEvents = employee.attendanceEvents.filter(event => {
-            const eventDate = new Date(event.timestamp);
-            return eventDate >= dayStart && eventDate <= dayEnd;
-          });
-
-          const dailyHours = this.calculateDailyHours(dayEvents);
-          totalDayHours += dailyHours;
-        }
-
-        weeklyData.datasets[0]?.data.push(Math.round(totalDayHours * 10) / 10);
+        const dayData = dailyDataMap.get(dateStr) || { totalHours: 0, activeEmployees: 0 };
+        
+        weeklyData.datasets[0]?.data.push(Math.round(dayData.totalHours * 10) / 10);
+        weeklyData.dailyData.push({
+          date: dateStr,
+          totalHours: Math.round(dayData.totalHours * 10) / 10,
+          averageHours: dayData.activeEmployees > 0 
+            ? Math.round((dayData.totalHours / dayData.activeEmployees) * 10) / 10 
+            : 0,
+          activeEmployees: dayData.activeEmployees
+        });
       }
 
       return weeklyData;
-    } catch (_error) {
-      // console.error('Error getting weekly chart data:', _error);
-      throw new Error('Failed to get weekly chart data');
+    } catch (error) {
+      console.error('Error getting weekly chart data:', error);
+      // Fallback to legacy implementation
+      return this.getWeeklyChartDataLegacy(companyId, startDate);
     }
+  }
+
+  /**
+   * Legacy weekly chart data implementation as fallback
+   */
+  private static async getWeeklyChartDataLegacy(companyId: string, startDate?: Date) {
+    const weekStart = startDate ?? new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    // Use optimized select query
+    const employees = await prisma.user.findMany({
+      where: { 
+        companyId,
+        isActive: true,
+        role: 'EMPLOYEE'
+      },
+      select: {
+        id: true,
+        attendanceEvents: {
+          where: {
+            timestamp: {
+              gte: weekStart,
+              lte: weekEnd,
+            }
+          },
+          select: {
+            type: true,
+            timestamp: true
+          },
+          orderBy: { timestamp: 'asc' }
+        }
+      }
+    });
+
+    const weeklyData = {
+      labels: ['Pon', 'Uto', 'Str', 'Štv', 'Pia', 'Sob', 'Ned'],
+      datasets: [{
+        data: [] as number[],
+        color: '#3b82f6',
+        label: 'Pracovné hodiny'
+      }],
+      period: 'week' as const,
+      startDate: weekStart.toISOString(),
+      endDate: weekEnd.toISOString(),
+      dailyData: [] as Array<{
+        date: string;
+        totalHours: number;
+        averageHours: number;
+        activeEmployees: number;
+      }>
+    };
+
+    for (let day = 0; day < 7; day++) {
+      const dayStart = new Date(weekStart);
+      dayStart.setDate(dayStart.getDate() + day);
+      dayStart.setHours(0, 0, 0, 0);
+      
+      const dayEnd = new Date(dayStart);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      let totalDayHours = 0;
+      let activeEmployees = 0;
+
+      for (const employee of employees) {
+        const dayEvents = employee.attendanceEvents.filter(event => {
+          const eventDate = new Date(event.timestamp);
+          return eventDate >= dayStart && eventDate <= dayEnd;
+        });
+
+        if (dayEvents.length > 0) {
+          const dailyHours = this.calculateDailyHours(dayEvents);
+          totalDayHours += dailyHours;
+          if (dailyHours > 0) activeEmployees++;
+        }
+      }
+
+      const roundedHours = Math.round(totalDayHours * 10) / 10;
+      weeklyData.datasets[0]?.data.push(roundedHours);
+      weeklyData.dailyData.push({
+        date: dayStart.toISOString().split('T')[0],
+        totalHours: roundedHours,
+        averageHours: activeEmployees > 0 ? Math.round((totalDayHours / activeEmployees) * 10) / 10 : 0,
+        activeEmployees
+      });
+    }
+
+    return weeklyData;
   }
 
   /**
@@ -532,7 +652,7 @@ export class DashboardService {
   }
 
   /**
-   * Get detailed employee statistics for a specific time period
+   * Get detailed employee statistics for a specific time period - OPTIMIZED VERSION
    */
   static async getEmployeeStatistics(
     companyId: string, 
@@ -569,84 +689,225 @@ export class DashboardService {
           throw new Error('Invalid period');
       }
 
-      const whereClause: {
-        companyId: string;
-        isActive: boolean;
-        role: UserRole;
-        id?: string;
-      } = { 
-        companyId,
-        isActive: true,
-        role: 'EMPLOYEE'
-      };
+      // OPTIMIZATION 1: Use raw SQL for better performance with aggregations
+      const statisticsQuery = `
+        WITH user_stats AS (
+          SELECT 
+            u.id,
+            u."firstName",
+            u."lastName",
+            u.email,
+            COUNT(ae.id) as total_events,
+            MIN(CASE WHEN ae.type = 'CLOCK_IN' THEN ae.timestamp END) as first_activity,
+            MAX(ae.timestamp) as last_activity,
+            -- Calculate working hours using window functions
+            SUM(
+              CASE 
+                WHEN ae.type = 'CLOCK_OUT' AND 
+                     LAG(ae.type) OVER (PARTITION BY u.id ORDER BY ae.timestamp) = 'CLOCK_IN'
+                THEN EXTRACT(EPOCH FROM (ae.timestamp - LAG(ae.timestamp) OVER (PARTITION BY u.id ORDER BY ae.timestamp))) / 3600.0
+                ELSE 0
+              END
+            ) as working_hours,
+            -- Calculate break time
+            SUM(
+              CASE 
+                WHEN ae.type IN ('BREAK_END', 'PERSONAL_END') AND 
+                     LAG(ae.type) OVER (PARTITION BY u.id ORDER BY ae.timestamp) IN ('BREAK_START', 'PERSONAL_START')
+                THEN EXTRACT(EPOCH FROM (ae.timestamp - LAG(ae.timestamp) OVER (PARTITION BY u.id ORDER BY ae.timestamp))) / 3600.0
+                ELSE 0
+              END
+            ) as break_time,
+            -- Count working days
+            COUNT(DISTINCT DATE(ae.timestamp)) FILTER (WHERE ae.type = 'CLOCK_IN') as working_days
+          FROM users u
+          LEFT JOIN "AttendanceEvent" ae ON u.id = ae."userId" 
+            AND ae.timestamp >= $1 
+            AND ae.timestamp <= $2
+          WHERE u."companyId" = $3 
+            AND u."isActive" = true 
+            AND u.role = 'EMPLOYEE'
+            ${userId ? 'AND u.id = $4' : ''}
+          GROUP BY u.id, u."firstName", u."lastName", u.email
+        ),
+        latest_events AS (
+          SELECT DISTINCT ON (ae."userId") 
+            ae."userId",
+            ae.type as last_event_type
+          FROM "AttendanceEvent" ae
+          JOIN users u ON ae."userId" = u.id
+          WHERE u."companyId" = $3 
+            AND u."isActive" = true 
+            AND u.role = 'EMPLOYEE'
+            ${userId ? 'AND u.id = $4' : ''}
+          ORDER BY ae."userId", ae.timestamp DESC
+        )
+        SELECT 
+          us.*,
+          COALESCE(le.last_event_type, 'CLOCK_OUT') as last_event_type
+        FROM user_stats us
+        LEFT JOIN latest_events le ON us.id = le."userId"
+        ORDER BY us."firstName", us."lastName"
+      `;
 
-      // If userId is provided, filter for specific user
-      if (userId) {
-        whereClause.id = userId;
-      }
+      const queryParams = userId 
+        ? [startDate, endDate, companyId, userId]
+        : [startDate, endDate, companyId];
 
-      const employees = await prisma.user.findMany({
-        where: whereClause,
-        include: {
-          attendanceEvents: {
-            where: {
-              timestamp: {
-                gte: startDate,
-                lte: endDate,
-              }
-            },
-            orderBy: { timestamp: 'asc' }
-          }
-        }
-      });
-
-      const statistics: any[] = [];
-
-      for (const employee of employees) {
-        const events = employee.attendanceEvents;
-        const workingHours = this.calculateDailyHours(events);
-        const breakTime = this.calculateBreakTime(events);
-        const workingDays = this.getWorkingDaysCount(events, period);
+      const rawResults = await prisma.$queryRawUnsafe(statisticsQuery, ...queryParams);
+      
+      const statistics = (rawResults as any[]).map((row: any) => {
+        const workingHours = parseFloat(row.working_hours) || 0;
+        const breakTime = parseFloat(row.break_time) || 0;
+        const workingDays = parseInt(row.working_days) || 0;
         
         // Calculate overtime (assuming 8 hours per day is standard)
         const standardHours = workingDays * 8;
         const overtime = Math.max(0, workingHours - standardHours);
 
-        // Get first and last activity times
-        const firstEvent = events.find((e: { type: string }) => e.type === 'CLOCK_IN');
-        const lastEvent = events.length > 0 ? events[events.length - 1] : null;
-
-        statistics.push({
-          id: employee.id,
-          name: `${employee.firstName} ${employee.lastName}`,
-          email: employee.email,
+        return {
+          id: row.id,
+          name: `${row.firstName} ${row.lastName}`,
+          email: row.email,
           workingHours: Math.round(workingHours * 10) / 10,
           breakTime: Math.round(breakTime * 10) / 10,
           workingDays,
           overtime: Math.round(overtime * 10) / 10,
           averageHoursPerDay: workingDays > 0 ? Math.round((workingHours / workingDays) * 10) / 10 : 0,
-          firstActivity: firstEvent?.timestamp ?? null,
-          lastActivity: lastEvent?.timestamp ?? null,
-          totalEvents: events.length,
-          status: this.getCurrentStatus(events[events.length - 1] ?? { type: 'CLOCK_OUT' })
-        });
-      }
+          firstActivity: row.first_activity,
+          lastActivity: row.last_activity,
+          totalEvents: parseInt(row.total_events) || 0,
+          status: this.getCurrentStatus({ type: row.last_event_type })
+        };
+      });
 
       return {
         period,
         startDate,
         endDate,
-        totalEmployees: employees.length,
+        totalEmployees: statistics.length,
         statistics
       };
-    } catch (_error) {
-      // console.error('Error getting employee statistics:', _error);
-      throw new Error('Failed to get employee statistics');
+    } catch (error) {
+      console.error('Error getting employee statistics:', error);
+      // Fallback to original implementation if raw SQL fails
+      return this.getEmployeeStatisticsLegacy(companyId, period, date, userId);
     }
   }
 
   /**
-   * Get detailed day activities for a specific employee or all employees
+   * Legacy implementation as fallback
+   */
+  private static async getEmployeeStatisticsLegacy(
+    companyId: string, 
+    period: 'day' | 'week' | 'month',
+    date?: Date,
+    userId?: string
+  ) {
+    const targetDate = date ?? new Date();
+    let startDate: Date, endDate: Date;
+
+    switch (period) {
+      case 'day':
+        startDate = new Date(targetDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(targetDate);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'week': {
+        const dayOfWeek = targetDate.getDay();
+        const diff = targetDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        startDate = new Date(targetDate.setDate(diff));
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      }
+      case 'month':
+        startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+        endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59, 999);
+        break;
+      default:
+        throw new Error('Invalid period');
+    }
+
+    const whereClause: any = { 
+      companyId,
+      isActive: true,
+      role: 'EMPLOYEE'
+    };
+
+    if (userId) {
+      whereClause.id = userId;
+    }
+
+    // OPTIMIZATION 2: Limit the data we fetch and use select
+    const employees = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        attendanceEvents: {
+          where: {
+            timestamp: {
+              gte: startDate,
+              lte: endDate,
+            }
+          },
+          select: {
+            id: true,
+            type: true,
+            timestamp: true
+          },
+          orderBy: { timestamp: 'asc' }
+        }
+      }
+    });
+
+    const statistics: any[] = [];
+
+    for (const employee of employees) {
+      const events = employee.attendanceEvents;
+      const workingHours = this.calculateDailyHours(events);
+      const breakTime = this.calculateBreakTime(events);
+      const workingDays = this.getWorkingDaysCount(events, period);
+      
+      const standardHours = workingDays * 8;
+      const overtime = Math.max(0, workingHours - standardHours);
+
+      const firstEvent = events.find((e: { type: string }) => e.type === 'CLOCK_IN');
+      const lastEvent = events.length > 0 ? events[events.length - 1] : null;
+
+      statistics.push({
+        id: employee.id,
+        name: `${employee.firstName} ${employee.lastName}`,
+        email: employee.email,
+        workingHours: Math.round(workingHours * 10) / 10,
+        breakTime: Math.round(breakTime * 10) / 10,
+        workingDays,
+        overtime: Math.round(overtime * 10) / 10,
+        averageHoursPerDay: workingDays > 0 ? Math.round((workingHours / workingDays) * 10) / 10 : 0,
+        firstActivity: firstEvent?.timestamp ?? null,
+        lastActivity: lastEvent?.timestamp ?? null,
+        totalEvents: events.length,
+        status: this.getCurrentStatus(events[events.length - 1] ?? { type: 'CLOCK_OUT' })
+      });
+    }
+
+    return {
+      period,
+      startDate,
+      endDate,
+      totalEmployees: employees.length,
+      statistics
+    };
+  }
+
+  /**
+   * Get detailed day activities for a specific employee or all employees - OPTIMIZED VERSION
    */
   static async getDayActivities(
     companyId: string, 
@@ -659,12 +920,13 @@ export class DashboardService {
       const endDate = new Date(date);
       endDate.setHours(23, 59, 59, 999);
 
-      const whereClause: {
-        companyId: string;
-        timestamp: { gte: Date; lte: Date };
-        userId?: string;
-      } = {
-        companyId,
+      // OPTIMIZATION: Use more efficient query with proper joins and filtering
+      const whereClause: any = {
+        user: {
+          companyId,
+          isActive: true,
+          role: 'EMPLOYEE'
+        },
         timestamp: {
           gte: startDate,
           lte: endDate,
@@ -672,12 +934,19 @@ export class DashboardService {
       };
 
       if (userId) {
-        whereClause.userId = userId;
+        whereClause.user.id = userId;
       }
 
+      // OPTIMIZATION: Use select to limit data transfer and add proper ordering
       const events = await prisma.attendanceEvent.findMany({
         where: whereClause,
-        include: {
+        select: {
+          id: true,
+          type: true,
+          timestamp: true,
+          location: true,
+          notes: true,
+          qrVerified: true,
           user: {
             select: {
               id: true,
@@ -687,11 +956,15 @@ export class DashboardService {
             }
           }
         },
-        orderBy: { timestamp: 'asc' }
+        orderBy: [
+          { user: { firstName: 'asc' } },
+          { user: { lastName: 'asc' } },
+          { timestamp: 'asc' }
+        ]
       });
 
-      // Group events by user
-      const userActivities: Record<string, {
+      // OPTIMIZATION: Use Map for better performance than object lookup
+      const userActivitiesMap = new Map<string, {
         user: { id: string; firstName: string; lastName: string; email: string };
         events: Array<{
           id: string;
@@ -708,12 +981,14 @@ export class DashboardService {
           totalBreakTime: number;
           breaks: unknown[];
         };
-      }> = {};
+      }>();
 
+      // OPTIMIZATION: Single pass through events to group and pre-calculate
       for (const event of events) {
         const userId = event.user.id;
         
-        userActivities[userId] ??= {
+        if (!userActivitiesMap.has(userId)) {
+          userActivitiesMap.set(userId, {
             user: event.user,
             events: [],
             summary: {
@@ -723,10 +998,10 @@ export class DashboardService {
               totalBreakTime: 0,
               breaks: []
             }
-          };
+          });
+        }
 
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        const activity = userActivities[userId] as NonNullable<(typeof userActivities)[string]>;
+        const activity = userActivitiesMap.get(userId)!;
         activity.events.push({
           id: event.id,
           type: event.type,
@@ -737,18 +1012,17 @@ export class DashboardService {
         });
       }
 
-      // Calculate summaries for each user
-      for (const userId in userActivities) {
-        const activity = userActivities[userId];
-        if (activity) {
-          const summary = this.calculateDetailedSummary(activity.events);
-          activity.summary = summary;
-        }
+      // OPTIMIZATION: Calculate summaries in batch
+      const activities: any[] = [];
+      for (const [_userId, activity] of userActivitiesMap) {
+        const summary = this.calculateDetailedSummary(activity.events);
+        activity.summary = summary;
+        activities.push(activity);
       }
 
       return {
         date,
-        activities: Object.values(userActivities)
+        activities
       };
     } catch (_error) {
       // console.error('Error getting day activities:', _error);

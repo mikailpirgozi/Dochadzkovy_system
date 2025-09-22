@@ -67,8 +67,8 @@ export default function LoginScreen() {
     setIsValidatingCompany(true);
     
     try {
-      console.log('🔍 Validating company with URL:', apiService.client.defaults.baseURL);
-      console.log('🏢 Company slug:', companySlug.trim());
+      // Validating company with URL
+      // Company slug validation
       
       // Create a new axios instance without interceptors for validation
       const validationClient = axios.create({
@@ -82,7 +82,7 @@ export default function LoginScreen() {
       const response = await validationClient.get(`/companies/validate/${companySlug.trim()}`);
       const data = response.data;
       
-      console.log('✅ Company validation response:', data);
+      // Company validation successful
       
       if (data.success && data.data) {
         setCompanyInfo(data.data);
