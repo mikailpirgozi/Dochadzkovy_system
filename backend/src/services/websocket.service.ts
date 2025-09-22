@@ -26,9 +26,7 @@ export class WebSocketService {
     this.io = new SocketIOServer(server, {
       cors: {
         origin: [
-          process.env.CORS_ORIGIN ?? "http://localhost:8081",
-          "http://localhost:5173",
-          "http://localhost:5174"
+          ...(process.env.CORS_ORIGIN ?? "http://localhost:8081,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://192.168.1.22:8081,exp://192.168.1.22:8081,https://web-dashboard-production-b123.up.railway.app,https://dochadzkovy-system-web.vercel.app").split(',')
         ],
         methods: ["GET", "POST"],
         credentials: true

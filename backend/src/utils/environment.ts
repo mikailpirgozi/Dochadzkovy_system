@@ -21,7 +21,7 @@ export const validateEnvironment = (): EnvironmentConfig => {
     JWT_SECRET: process.env.JWT_SECRET ?? '',
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
     JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
-    CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:8081,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://192.168.1.22:8081,exp://192.168.1.22:8081',
+    CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:8081,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://192.168.1.22:8081,exp://192.168.1.22:8081,https://web-dashboard-production-b123.up.railway.app,https://dochadzkovy-system-web.vercel.app',
     SMTP_HOST: process.env.SMTP_HOST ?? '',
     SMTP_PORT: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
     SMTP_USER: process.env.SMTP_USER ?? '',
